@@ -1,57 +1,91 @@
-const { Configuration, OpenAIApi } = require("openai");
-const {getJsonDataPrompt} = require("./data/prompts")
+const { getJsonDataPrompt } = require("./data/prompts");
+const EventEmitter = require("events");
 
-const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-console.log(process.env.OPENAI_API_KEY)
+const { fetchSSE } = require("./fetch-sse.js");
 
-async function getJsonData(chatHistory, systemPrompt) {
-    if(chatHistory.length == 1) return { finished: false, learningObjective: -1}
-
-    const completion = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo", 
-        messages: [...chatHistory, { role: "system", content: getJsonDataPrompt}],
-    });
-    
-    var dataString = completion.data.choices[0].message.content;
-    console.log("Json data:", dataString);
-
-
-    while (dataString.charAt(0) !== '{') {
-        dataString = dataString.slice(1);
-    }
-    while (dataString.charAt(dataString.length - 1) !== '}') {
-        dataString = dataString.slice(0, dataString.length - 1);
+class ChatGPTConversation {
+    constructor({
+        heavyPrompt,
+        chatHistory = [{ role: "system", content: heavyPrompt }],
+    }) {
+        this.chatHistory = chatHistory;
+        this.heavyPrompt = heavyPrompt;
+        this.messageEmitter = new EventEmitter();
     }
 
-    return JSON.parse(dataString.replaceAll("'", '"'));
+    async generateChatCompletion(message, opts) {
+        return new Promise((resolve, reject) => {
+            const result = {
+                role: "assistant",
+                content: "",
+            };
+
+            const body = {
+                model: "gpt-3.5-turbo",
+                messages: message
+                    ? [...this.chatHistory, message]
+                    : this.chatHistory,
+                stream: true,
+            };
+
+            const headers = {
+                "Content-Type": "application/json",
+                Authorization: `Bearer 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`,
+            };
+
+            const url = "https://api.openai.com/v1/chat/completions";
+
+            console.log(body, headers, url);
+
+            fetchSSE(url, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body),
+                // signal: abortSignal,
+                onMessage: (data) => {
+                    if (data === "[DONE]") {
+                        result.content = result.content.trim();
+                        return resolve({
+                            role: result.role,
+                            content: result.content,
+                        });
+                    }
+
+                    try {
+                        const response = JSON.parse(data);
+
+                        if (response.id) result.id = response.id;
+
+                        if (response?.choices?.length) {
+                            const delta = response.choices[0].delta;
+                            result.delta = delta.content;
+                            if (delta?.content) result.content += delta.content;
+                            result.detail = response;
+
+                            if (delta.role) {
+                                result.role = delta.role;
+                            }
+
+                            if (!opts?.silent) {
+                                this.messageEmitter.emit(
+                                    "message",
+                                    delta.content
+                                );
+                            }
+
+                            opts?.onProgress?.(result);
+                        }
+                    } catch (err) {
+                        console.warn(
+                            "OpenAI stream SEE event unexpected error",
+                            err
+                        );
+                        return reject(err);
+                    }
+                },
+            });
+        });
+    }
 }
 
-async function getChatCompletion(chatHistory, systemPrompt){
-    const completion = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "system", content: systemPrompt }, ...chatHistory],
-    });
-    
-    return completion.data.choices[0].message;
-}
-
-async function generateChatCompletion(chatHistory, systemPrompt) {
-    // const data = await Promise.all([getJsonData(chatHistory, systemPrompt), getChatCompletion(chatHistory, systemPrompt)])
-    const completion = await getChatCompletion(chatHistory, systemPrompt);
-    chatHistory.push(completion);
-    const json = await getJsonData(chatHistory, systemPrompt);
-
-    console.log(completion, json);
-    // console.log(data);
-    return {
-        ...json,
-        response: completion.content
-    };
-}
-
-module.exports = {
-    generateChatCompletion,
-};
+module.exports = { ChatGPTConversation };

@@ -1,32 +1,31 @@
 {
-    "LessonId": "429304",
-    "Title": "Fundamentals of Algebra #1",
-    "Subject": "Mathematics",
-    "Level": "GCSE",
-    "Teacher": "Harry Potter",
+    "lessonID": "429304",
+    "title": "Fundamentals of Algebra #1",
+    "subject": "Mathematics",
+    "level": "GCSE",
+    "teacher": "Harry Potter",
     "description": "A lesson on the fundamentals of algebra",
-    "LessonObjectives": [
+    "learningObjectives": [
         {
-            "LessonObjective": "Understand the key ideas of algebra",
-            "Image": {
-                "link" : "https://example_image.com",
+            "learningObjective": "Understand the key ideas of algebra",
+            "image": {
+                "link": "https://example_image.com",
                 "description": "this is an image of algebraic letters"
             }
         },
         {
-            "LessonObjective": "Understand algebraic equations",
-            "Image": {
-                "link" : "https://example_image.com",
+            "learningObjective": "Understand algebraic equations",
+            "image": {
+                "link": "https://example_image.com",
                 "description": "image of the algebraic equation: 2x + 1 = 5"
             }
         },
         {
-            "LessonObjective": "Be able to solve basic algebraic equations",
-            "Image": {
-                "link" : "https://example_image.com",
+            "learningObjective": "Be able to solve basic algebraic equations",
+            "image": {
+                "link": "https://example_image.com",
                 "description": "image of algebraic equation: 4x + 4 = 2x - 1"
             }
         }
-        
     ]
 }
