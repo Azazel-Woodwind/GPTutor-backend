@@ -35,7 +35,7 @@ class ChatGPTConversation {
 
             const url = "https://api.openai.com/v1/chat/completions";
 
-            console.log(body, headers, url);
+            console.log(body);
 
             fetchSSE(url, {
                 method: "POST",
@@ -43,6 +43,7 @@ class ChatGPTConversation {
                 body: JSON.stringify(body),
                 // signal: abortSignal,
                 onMessage: (data) => {
+                    // console.log("data:", data);
                     if (data === "[DONE]") {
                         result.content = result.content.trim();
                         return resolve({

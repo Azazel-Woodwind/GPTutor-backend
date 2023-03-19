@@ -45,7 +45,7 @@ const generateLessonPrompt = (lesson) => {
         })
         .map(
             (objective, index) =>
-                `\nLesson Objective #${index + 1}: ${JSON.stringify(objective)}`
+                `\nLearning Objective #${index + 1}: ${JSON.stringify(objective)}`
         )
         .join("\n");
 
@@ -79,7 +79,7 @@ const generateHeavyPrompt = (user, lesson) => {
 
 class XLesson {
     constructor({ student, lesson, chatHistory }) {
-        console.log(student, lesson);
+        // console.log(student, lesson);
         this.heavyPrompt = generateHeavyPrompt(student, lesson);
         this.chat = new ChatGPTConversation({
             chatHistory,
@@ -90,9 +90,15 @@ class XLesson {
     async continueConversation(message) {
         message &&
             this.chat.chatHistory.push({ role: "user", content: message });
+        console.log("continueConversation");
         const response = await this.chat.generateChatCompletion();
         this.chat.chatHistory.push(response);
-        const json = await this.getJsonData();
+        let json;
+        do {
+            json = await this.getJsonData();
+            // console.log("json:", json);
+        }
+        while (json === null);
 
         return {
             ...json,
@@ -101,24 +107,26 @@ class XLesson {
     }
 
     async getJsonData() {
-        if (this.chat.chatHistory.length == 1)
-            return { finished: false, learningObjective: -1 };
-
+        console.log("Getting json data");
         var { content } = await this.chat.generateChatCompletion(
-            { role: "user", content: getJsonDataPrompt },
+            { role: "system", content: getJsonDataPrompt },
             { silent: true }
         );
         let dataString = content;
         console.log("Json data:", dataString, "end of json data");
 
-        while (dataString.charAt(0) !== "{") {
-            dataString = dataString.slice(1);
+        let startingIndex = 0;
+        let endingIndex = dataString.length;
+        while (startingIndex < endingIndex && dataString.charAt(startingIndex) !== "{") {
+            startingIndex++;
         }
-        while (dataString.charAt(dataString.length - 1) !== "}") {
-            dataString = dataString.slice(0, dataString.length - 1);
+        while (startingIndex < endingIndex && dataString.charAt(endingIndex - 1) !== "}") {
+            endingIndex--;
         }
+        const jsonString = dataString.substring(startingIndex, endingIndex);
+        if (jsonString.length == 0) return null;
 
-        return JSON.parse(dataString.replaceAll("'", '"'));
+        return JSON.parse(jsonString.replaceAll("'", '"'));
     }
 }
 

@@ -12,11 +12,27 @@ require("dotenv").config();
 const XLesson = require("./utils/lesson.utils.js");
 const { Socket } = require("socket.io");
 
+const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
+
+const ttsClient = new TextToSpeechClient();
+
+const SsmlVoiceGender = {
+    NEUTRAL: "NEUTRAL",
+    SSML_VOICE_GENDER_UNSPECIFIED: "SSML_VOICE_GENDER_UNSPECIFIED",
+    MALE: "MALE",
+    FEMALE: "FEMALE",
+}
+
+const AudioEncoding = {
+    AUDIO_ENCODING_UNSPECIFIED: "AUDIO_ENCODING_UNSPECIFIED",
+    LINEAR16: "LINEAR16",
+    MP3: "MP3",
+    OGG_OPUS: "OGG_OPUS",
+}
+
+const ok = {};
+
 (async () => {
-    const { ChatGPTAPI } = await import("chatgpt");
-    global.api = new ChatGPTAPI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
     const cors = require("cors");
     const dev = true;
 
@@ -39,9 +55,6 @@ const { Socket } = require("socket.io");
 
     const whisperApiEndpoint = `https://api.openai.com/v1/audio/transcriptions`;
 
-    const { generateChatCompletion } = require("./utils/chatgpt.utils.");
-    const { generateHeavyPrompt } = require("./utils/prompts.utils.js");
-
     const mock_user = require("./mock_data/user.json");
     const mock_lesson = require("./mock_data/lesson.json");
 
@@ -60,6 +73,7 @@ const { Socket } = require("socket.io");
             
             socket.on("authenticate", (data) => {
                 console.log("Socket authenticated");
+                socket.emit("authenticated", true);
     
                 /*
                 Whisper streaming api
@@ -99,6 +113,34 @@ const { Socket } = require("socket.io");
                         })
                     
                 });
+
+                /*
+                Google speech to text
+                */
+
+                socket.on("text_data", async (data) => {
+                    console.log("Received text data");
+                    console.log(data);
+                    const request = {
+                        input: {
+                            text: data,
+                        },
+                        voice: {
+                            languageCode: "en-GB",
+                            ssmlGender: SsmlVoiceGender.NEUTRAL,
+                        },
+                        audioConfig: {
+                            audioEncoding: AudioEncoding.MP3,
+                            // speakingRate: 0.5,
+                        },
+                    };
+                
+                    const [response] = await ttsClient.synthesizeSpeech(request);
+                    // console.log("response:", response);
+                    const base64 = response.audioContent.toString("base64");
+
+                    socket.emit("audio_data", base64);
+                })
     
                 /*
                 Lessons API
@@ -121,11 +163,11 @@ const { Socket } = require("socket.io");
                     );
     
                     const completeChat = async ({ message, first }) => {
-                        const { learningObjective, finished, content } =
+                        const { learningObjectiveNumber, finished, content } =
                             await lesson.continueConversation(message);
     
                         socket.emit("lesson_response_data", {
-                            learningObjective: first ? -1 : learningObjective,
+                            learningObjectiveNumber: first ? -1 : learningObjectiveNumber,
                             response: content,
                         });
     
@@ -135,7 +177,7 @@ const { Socket } = require("socket.io");
                     completeChat({ first: true });
     
                     socket.on("lesson_message_x", async (message) => {
-                        completeChat({ message });
+                        await completeChat({ message });
                         // lesson.continueConversation(message);
                     });
                 });
@@ -147,7 +189,7 @@ const { Socket } = require("socket.io");
 
     /*
 At the end of your response return a JSON object containing these values:
-Return a json message containing two keys: "Finished" which describes whether or not the lesson is done, and "LearningObjective" which contains a number corresponding to theLearningObjective the student will be on from now on.
+Return a json message containing two keys: "Finished" which describes whether or not the lesson is done, and "learningObjectiveNumber" which contains a number corresponding to thelearningObjectiveNumber the student will be on from now on.
 */
 
     server.listen(3001, () => {
