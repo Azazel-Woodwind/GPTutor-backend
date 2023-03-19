@@ -45,7 +45,9 @@ const generateLessonPrompt = (lesson) => {
         })
         .map(
             (objective, index) =>
-                `\nLearning Objective #${index + 1}: ${JSON.stringify(objective)}`
+                `\nLearning Objective #${index + 1}: ${JSON.stringify(
+                    objective
+                )}`
         )
         .join("\n");
 
@@ -97,8 +99,7 @@ class XLesson {
         do {
             json = await this.getJsonData();
             // console.log("json:", json);
-        }
-        while (json === null);
+        } while (json === null);
 
         return {
             ...json,
@@ -117,10 +118,16 @@ class XLesson {
 
         let startingIndex = 0;
         let endingIndex = dataString.length;
-        while (startingIndex < endingIndex && dataString.charAt(startingIndex) !== "{") {
+        while (
+            startingIndex < endingIndex &&
+            dataString.charAt(startingIndex) !== "{"
+        ) {
             startingIndex++;
         }
-        while (startingIndex < endingIndex && dataString.charAt(endingIndex - 1) !== "}") {
+        while (
+            startingIndex < endingIndex &&
+            dataString.charAt(endingIndex - 1) !== "}"
+        ) {
             endingIndex--;
         }
         const jsonString = dataString.substring(startingIndex, endingIndex);
