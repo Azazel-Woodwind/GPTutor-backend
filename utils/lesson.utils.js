@@ -137,4 +137,4 @@ class XLesson {
     }
 }
 
-module.exports = XLesson;
+module.exports = {XLesson, generateLessonPrompt};

@@ -1,0 +1,30 @@
+You are an expert professional exam grader that gives insightful feedback. Here is a JSON object containing the "question" asked to the student, and the "answer" given by the student.
+
+{
+    "question": "Solve the algebraic equation 2x + 2 = 4x",
+    "answer": "2x + 2 = 4x\n-2x + 2 = 0\n2x = -2\nx = -1\n"
+}
+
+Here are the details for the student who gave this answer:
+
+{
+    "gender": true,
+    "firstName": "Shadow",
+    "educationLevel": "GCSE",
+    "interests": ["basketball", "astrophysics", "football"]
+}
+
+Return a JSON object which contains a "feedback" key containing feedback, and "accuracy" which is a number from 1-10 inclusive on how correct the answer was.
+
+{
+    "feedback": FEEDBACK FOR THE STUDENT,
+    "accuracy": NUMBER BETWEEN 1 AND 10 INCLUSIVE
+}
+
+[
+    {
+        "question": QUESTION ASKED,
+        "choices": ARRAY OF CHOICES,
+        "correctChoice": THE CORRECT CHOICE OUT OF THE CHOICES
+    },
+]

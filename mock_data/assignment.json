@@ -1,0 +1,12 @@
+{
+    "id": 1,
+    "studentId": 1,
+    "questions": [
+        {
+            "multipleChoice": false,
+            "options": [],
+            "maxMarks": 3,
+            "question": "What is the name of the first book in the Harry Potter series?"
+        }
+    ]
+}
