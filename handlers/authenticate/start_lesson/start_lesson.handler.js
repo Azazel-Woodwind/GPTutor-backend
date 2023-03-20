@@ -9,6 +9,7 @@ const start_lessonHandler = (data, socket) => {
         lesson: current_lesson,
         student: current_user,
     });
+    console.log(current_lesson.learningObjectives);
     socket.emit("lesson_info", current_lesson);
     lesson.chat.messageEmitter.on(
         "message",

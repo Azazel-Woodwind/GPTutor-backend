@@ -37,12 +37,8 @@ const generateUserPrompt = (user) => {
 
 const generateLessonPrompt = (lesson) => {
     lesson = { ...lesson };
-    // console.log(lesson);
     const lessonObjectiveData = lesson.learningObjectives
-        .map((objective) => {
-            delete objective.image.link;
-            return objective;
-        })
+        .map(({learningObjective, image}) => ({learningObjective, image: image.description}))
         .map(
             (objective, index) =>
                 `\nLearning Objective #${index + 1}: ${JSON.stringify(
