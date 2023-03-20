@@ -1,22 +1,23 @@
 const { supabase } = require('../config/supa');
-const { validateUser } = require('../models/login');
+const { validateSuperAdmin } = require('../models/superAdmin');
 const express = require('express');
 const router = express.Router();
 
-//Auth Login
+//Login Super Admin
+
 router.post('/', async (req, resp) => {
-  const { error } = validateUser(req.body);
+  const { error } = validateSuperAdmin(req.body);
   if (error)
-    return resp.status(400).send({ errors: error?.details[0].message });
+    return resp.status(400).send({ error: error?.details[0]?.message });
 
   const { email, password } = req.body;
 
   await supabase.auth
     .signInWithPassword({
-      email,
-      password,
+      email: email,
+      password: password,
     })
-    .then((response) => {
+    .then(async (response) => {
       if (response?.data?.user === null) {
         resp.status(400).send(response?.error);
       } else {
@@ -24,7 +25,7 @@ router.post('/', async (req, resp) => {
           response?.data?.session;
         const email = response?.data?.user?.email;
         supabase
-          .from('users')
+          .from('superAdmin')
           .select('*')
           .eq('email', email)
           .then((res) => {
