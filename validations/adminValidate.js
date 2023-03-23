@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-function validateUser(user) {
+function validateAdminSignUp(user) {
   const schema = Joi.object({
     name: Joi.string().required().min(3).max(20),
     password: Joi.string().required().min(5).max(15),
@@ -18,4 +18,20 @@ function validateUser(user) {
   const result = schema.validate(user);
   return result;
 }
-module.exports = { validateUser };
+
+function validateAdminLogin(user) {
+  const schema = Joi.object({
+    password: Joi.string().required(),
+    email: Joi.string()
+      .required()
+      .email({
+        minDomainSegments: 2,
+        tlds: { allow: ['com', 'net'] },
+      }),
+  });
+
+  const result = schema.validate(user);
+  return result;
+}
+
+module.exports = { validateAdminSignUp, validateAdminLogin };

@@ -1,9 +1,10 @@
 const {
-  loginSuperAdmin,
+  registerSuperAdmin,
 } = require('../controllers/auth/superAdminAuthController');
 const express = require('express');
 const router = express.Router();
 
-//Login Super Admin
-router.post('/', loginSuperAdmin);
+//Sign Up Super Admin
+router.post('/', registerSuperAdmin);
+
 module.exports = router;

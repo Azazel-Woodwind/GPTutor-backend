@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-function validateUser(admin) {
+function validateSASignUp(admin) {
   const schema = Joi.object({
     first_name: Joi.string().required(),
     last_name: Joi.string().required(),
@@ -18,7 +18,7 @@ function validateUser(admin) {
   return result;
 }
 
-function validateSuperAdmin(admin) {
+function validateSALogin(admin) {
   const schema = Joi.object({
     email: Joi.string()
       .required()
@@ -33,4 +33,4 @@ function validateSuperAdmin(admin) {
   return result;
 }
 
-module.exports = { validateUser, validateSuperAdmin };
+module.exports = { validateSASignUp, validateSALogin };
