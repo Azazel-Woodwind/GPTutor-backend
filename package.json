@@ -1,5 +1,5 @@
 {
-    "name": "backend",
+    "name": "x-tutor",
     "version": "1.0.0",
     "description": "",
     "main": "server.js",
@@ -24,7 +24,9 @@
         "openai": "^3.2.1",
         "socket.io": "^4.6.1",
         "uuid": "^9.0.0",
-        "ws": "^8.13.0"
+        "ws": "^8.13.0",
+        "joi": "^17.8.4",
+        "@supabase/supabase-js": "^2.11.0",
     },
     "devDependencies": {
         "prompt-sync": "^4.2.0",

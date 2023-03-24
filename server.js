@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express();
-const handleConnection = require("./handlers/connection.handler.");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
@@ -9,6 +8,20 @@ require("dotenv").config();
 
 app.use(express.json());
 app.use(cors());
+
+const handleConnection = require("./handlers/connection.handler.");
+
+const superAdminAuth = require("./routes/superAdminAuth");
+const superAdminLogin = require("./routes/superAdminLogin");
+const auth = require("./routes/auth");
+const login = require("./routes/login");
+const resetPassword = require("./routes/resetPassword");
+
+app.use("/api/admin-sign-up", superAdminAuth);
+app.use("/api/admin-login", superAdminLogin);
+app.use("/api/register", auth);
+app.use("/api/login", login);
+app.use("/api/reset-password", resetPassword);
 
 app.post("/api/lessons", async (req, res) => {
     try {
