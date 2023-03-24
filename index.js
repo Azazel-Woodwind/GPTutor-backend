@@ -1,5 +1,5 @@
 require('dotenv').config();
-const cors = require("cors");
+const cors = require('cors');
 const express = require('express');
 const superAdminSignUp = require('./routes/superAdminSignUp');
 const superAdminLogin = require('./routes/superAdminLogin');
@@ -8,6 +8,7 @@ const adminLogin = require('./routes/adminLogin');
 const resetPassword = require('./routes/resetPassword');
 const lessons = require('./routes/lessons');
 const waitList = require('./routes/waitList');
+const quiz = require('./routes/quiz');
 
 const app = express();
 app.use(cors());
@@ -21,6 +22,7 @@ app.use('/api/admin-login', adminLogin);
 app.use('/api/reset-password', resetPassword);
 app.use('/api/lessons', lessons);
 app.use('/api/wait-list', waitList);
+app.use('/api/quiz', quiz);
 
 //Port
 const port = process.env.PORT;
