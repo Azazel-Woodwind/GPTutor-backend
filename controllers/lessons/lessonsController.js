@@ -3,33 +3,42 @@ const HandleResponse = require('../../models/lessons/handleResponseLessons');
 const { validateLesson } = require('../../validations/lessonValidate');
 const express = require('express');
 const router = express.Router();
-const fs = require("fs");
-
-
+const fs = require('fs');
 
 /***************************** Setting SupaBase Bucket ******************************/
 const bucket = supabase.storage.from('lessons');
 
-
 /***************************** Get All Lessons ******************************/
 const getAllLessons = async (req, resp) => {
-  await supabase
-    .from('lessons')
-    .select('*')
-    .then(async (response) => {
-      const { data, statusText, error } = response;
-      if (data && statusText === 'OK') {
-        resp.send(data);
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1];
+  if (token === undefined) {
+    resp.status(401).send({ message: 'Unauthorized' });
+  } else {
+    await supabase.auth.getUser(token).then(async (response) => {
+      if (response?.data?.user === null) {
+        resp.status(401).send({ message: 'Unauthorized' });
       } else {
-        resp.status(401).send(error?.message);
+        await supabase
+          .from('lessons')
+          .select('*')
+          .then(async (response) => {
+            const { data, statusText, error } = response;
+            if (data && statusText === 'OK') {
+              resp.send(data);
+            } else {
+              resp.status(401).send(error?.message);
+            }
+          });
       }
     });
+  }
 };
 
 /***************************** Create Lesson ******************************/
 
 const createLesson = async (req, resp) => {
-  const body = { ...req.fields, ...req.files }
+  const body = { ...req.fields, ...req.files };
   const { error } = validateLesson(body);
   if (error) return resp.status(400).send({ error: error?.details[0].message });
 
@@ -50,7 +59,6 @@ const createLesson = async (req, resp) => {
           .then(async (res) => {
             const { data, error, statusText } = res;
             if (data && statusText === 'OK') {
-
               const {
                 title,
                 educational_level,
@@ -86,32 +94,36 @@ const createLesson = async (req, resp) => {
                 .pop()}`;
 
               // Check image size
-              if (lo1_media?.size >= 2e+6 || lo2_media?.size >= 2e+6 || lo3_media?.size >= 2e+6) {
-                resp.status(413).send({ error: 'Image size must not be greater than 2mb.' });
+              if (
+                lo1_media?.size >= 2e6 ||
+                lo2_media?.size >= 2e6 ||
+                lo3_media?.size >= 2e6
+              ) {
+                resp
+                  .status(413)
+                  .send({ error: 'Image size must not be greater than 2mb.' });
               } else {
-
                 // Upoading Images
                 await bucket.upload(lo1_media_name, lo1_mediaFile, {
                   cacheControl: '3600',
                   upsert: false,
-                  contentType: lo1_media?.type
+                  contentType: lo1_media?.type,
                 });
                 await bucket.upload(lo2_media_name, lo2_mediaFile, {
                   cacheControl: '3600',
                   upsert: false,
-                  contentType: lo2_media?.type
+                  contentType: lo2_media?.type,
                 });
                 await bucket.upload(lo3_media_name, lo3_mediaFile, {
                   cacheControl: '3600',
                   upsert: false,
-                  contentType: lo3_media?.type
+                  contentType: lo3_media?.type,
                 });
-
               }
               // Get Public URL
-              const lo1_media_URL = bucket.getPublicUrl(lo1_media_name)
-              const lo2_media_URL = bucket.getPublicUrl(lo2_media_name)
-              const lo3_media_URL = bucket.getPublicUrl(lo3_media_name)
+              const lo1_media_URL = bucket.getPublicUrl(lo1_media_name);
+              const lo2_media_URL = bucket.getPublicUrl(lo2_media_name);
+              const lo3_media_URL = bucket.getPublicUrl(lo3_media_name);
 
               const formData = {
                 title: title,
@@ -130,7 +142,7 @@ const createLesson = async (req, resp) => {
                 lo1_description: lo1_description,
                 lo2_description: lo2_description,
                 lo3_description: lo3_description,
-              }
+              };
 
               await supabase
                 .from('lessons')
@@ -153,7 +165,7 @@ const createLesson = async (req, resp) => {
 /***************************** Update Lesson ******************************/
 
 const updateLesson = async (req, resp) => {
-  const body = { ...req.fields, ...req.files }
+  const body = { ...req.fields, ...req.files };
   const { error } = validateLesson(body);
   if (error) return resp.status(400).send({ error: error?.details[0].message });
 
@@ -174,7 +186,6 @@ const updateLesson = async (req, resp) => {
           .then(async (res) => {
             const { data, error, statusText } = res;
             if (data && statusText === 'OK') {
-
               const {
                 title,
                 educational_level,
@@ -210,32 +221,36 @@ const updateLesson = async (req, resp) => {
                 .pop()}`;
 
               // Check image size
-              if (lo1_media?.size >= 2e+6 || lo2_media?.size >= 2e+6 || lo3_media?.size >= 2e+6) {
-                resp.status(413).send({ error: 'Image size must not be greater than 2mb.' });
+              if (
+                lo1_media?.size >= 2e6 ||
+                lo2_media?.size >= 2e6 ||
+                lo3_media?.size >= 2e6
+              ) {
+                resp
+                  .status(413)
+                  .send({ error: 'Image size must not be greater than 2mb.' });
               } else {
-
                 // Upoading Images
                 await bucket.upload(lo1_media_name, lo1_mediaFile, {
                   cacheControl: '3600',
                   upsert: false,
-                  contentType: lo1_media?.type
+                  contentType: lo1_media?.type,
                 });
                 await bucket.upload(lo2_media_name, lo2_mediaFile, {
                   cacheControl: '3600',
                   upsert: false,
-                  contentType: lo2_media?.type
+                  contentType: lo2_media?.type,
                 });
                 await bucket.upload(lo3_media_name, lo3_mediaFile, {
                   cacheControl: '3600',
                   upsert: false,
-                  contentType: lo3_media?.type
+                  contentType: lo3_media?.type,
                 });
-
               }
               // Get Public URL
-              const lo1_media_URL = bucket.getPublicUrl(lo1_media_name)
-              const lo2_media_URL = bucket.getPublicUrl(lo2_media_name)
-              const lo3_media_URL = bucket.getPublicUrl(lo3_media_name)
+              const lo1_media_URL = bucket.getPublicUrl(lo1_media_name);
+              const lo2_media_URL = bucket.getPublicUrl(lo2_media_name);
+              const lo3_media_URL = bucket.getPublicUrl(lo3_media_name);
 
               const formData = {
                 title: title,
@@ -254,7 +269,7 @@ const updateLesson = async (req, resp) => {
                 lo1_description: lo1_description,
                 lo2_description: lo2_description,
                 lo3_description: lo3_description,
-              }
+              };
 
               await supabase
                 .from('lessons')

@@ -23,6 +23,7 @@ const adminLogin = require("./routes/adminLogin");
 const resetPassword = require("./routes/resetPassword");
 const lessons = require("./routes/lessons");
 const waitList = require("./routes/waitList");
+const quiz = require("./routes/quiz");
 
 app.use("/api/admin-sign-up", superAdminAuth);
 app.use("/api/admin-login", superAdminLogin);
@@ -36,6 +37,7 @@ app.use("/api/admin-login", adminLogin);
 app.use("/api/reset-password", resetPassword);
 app.use("/api/lessons", lessons);
 app.use("/api/wait-list", waitList);
+app.use("/api/quiz", quiz);
 
 app.post("/api/test/lessons", async (req, res) => {
     try {
