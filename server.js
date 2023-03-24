@@ -16,14 +16,28 @@ const superAdminLogin = require("./routes/superAdminLogin");
 const auth = require("./routes/auth");
 const login = require("./routes/login");
 const resetPassword = require("./routes/resetPassword");
+const superAdminSignUp = require("./routes/superAdminSignUp");
+const superAdminLogin = require("./routes/superAdminLogin");
+const adminSignUp = require("./routes/adminSignUp");
+const adminLogin = require("./routes/adminLogin");
+const resetPassword = require("./routes/resetPassword");
+const lessons = require("./routes/lessons");
+const waitList = require("./routes/waitList");
 
 app.use("/api/admin-sign-up", superAdminAuth);
 app.use("/api/admin-login", superAdminLogin);
 app.use("/api/register", auth);
 app.use("/api/login", login);
 app.use("/api/reset-password", resetPassword);
+app.use("/api/super-admin-sign-up", superAdminSignUp);
+app.use("/api/super-admin-login", superAdminLogin);
+app.use("/api/admin-sign-up", adminSignUp);
+app.use("/api/admin-login", adminLogin);
+app.use("/api/reset-password", resetPassword);
+app.use("/api/lessons", lessons);
+app.use("/api/wait-list", waitList);
 
-app.post("/api/lessons", async (req, res) => {
+app.post("/api/test/lessons", async (req, res) => {
     try {
         if (fs.existsSync("temp_data/lessons.json")) {
             console.log(JSON.stringify(req.body, null, 2));
@@ -50,7 +64,7 @@ app.post("/api/lessons", async (req, res) => {
     }
 });
 
-app.get("/api/lessons", async (req, res) => {
+app.get("/api/test/lessons", async (req, res) => {
     try {
         const lessons = JSON.parse(
             fs.readFileSync("temp_data/lessons.json", "utf8")
@@ -62,7 +76,7 @@ app.get("/api/lessons", async (req, res) => {
     }
 });
 
-app.delete("/api/lessons/:id", async (req, res) => {
+app.delete("/api/test/lessons/:id", async (req, res) => {
     try {
         const lessons = JSON.parse(
             fs.readFileSync("temp_data/lessons.json", "utf8")
@@ -81,7 +95,7 @@ const io = require("socket.io")(server, {
 });
 
 try {
-    io.on("connection", (socket) => {
+    io.on("connection", socket => {
         handleConnection(socket);
     });
 } catch (error) {
