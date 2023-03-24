@@ -1,9 +1,25 @@
-const start_lessonHandler = (data, socket) => {
-    console.log("Received connection to start_lesson");
+const fs = require("fs");
 
-    const current_lesson = require("../../../mock_data/lesson.json");
+const start_lessonHandler = (data, socket) => {
+    const { lessonID } = data;
+    console.log("Received connection to start_lesson");
+    console.log("Lesson ID:", lessonID);
+    let lessons;
+    try {
+        const jsonString = fs.readFileSync(
+            require.resolve("../../../temp_data/lessons.json"),
+            "utf8"
+        );
+        lessons = JSON.parse(jsonString);
+    } catch (error) {
+        console.log("Error:", error);
+    }
+    console.log(lessons);
+    const current_lesson = lessons[lessonID];
+    console.log(current_lesson);
+    // const current_lesson = require("../../../mock_data/lesson.json");
     const current_user = require("../../../mock_data/user.json");
-    const {XLesson} = require("../../../utils/lesson.utils");
+    const { XLesson } = require("../../../lib/XLesson");
 
     const lesson = new XLesson({
         lesson: current_lesson,

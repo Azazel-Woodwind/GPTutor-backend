@@ -1,10 +1,7 @@
 {
     "id": "5a9b0b9d-7c1e-4b5e-8f9a-1b5b5b5b5b5b",
-    "assignmentId": "5a9b0b9d-7c1e-4b5e-8f9a-1b5b5b5b5b5b",
-    "markedQuestions": [
-        {
-            "marks": 1,
-            "feedback": "Feedback for question 1"
-        }
-    ]
+    "lessonId": "5a9b0b9d-7c1e-4b5e-8f9a-1b5b5b5b5b5b",
+    "studentId": "5a9b0b9d-7c1e-4b5e-8f9a-1b5b5b5b5b5b",
+    "totalQuestions": 10,
+    "totalCorrect": 5
 }

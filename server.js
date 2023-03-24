@@ -1,190 +1,80 @@
 const express = require("express");
 const app = express();
-const axios = require("axios");
-const FormData = require("form-data");
-const handleConnection = require("./handlers/connection.handler.")
-const {XLesson} = require("./utils/lesson.utils")
+const handleConnection = require("./handlers/connection.handler.");
+const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
+const cors = require("cors");
 
 require("dotenv").config();
 
-const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
+app.use(express.json());
+app.use(cors());
 
-const ttsClient = new TextToSpeechClient();
-
-const SsmlVoiceGender = {
-    NEUTRAL: "NEUTRAL",
-    SSML_VOICE_GENDER_UNSPECIFIED: "SSML_VOICE_GENDER_UNSPECIFIED",
-    MALE: "MALE",
-    FEMALE: "FEMALE",
-};
-
-const AudioEncoding = {
-    AUDIO_ENCODING_UNSPECIFIED: "AUDIO_ENCODING_UNSPECIFIED",
-    LINEAR16: "LINEAR16",
-    MP3: "MP3",
-    OGG_OPUS: "OGG_OPUS",
-};
-
-(async () => {
-    const cors = require("cors");
-    const dev = true;
-
-    app.use(express.json());
-    app.use(cors());
-
-    const server = require("http").createServer(app);
-    const io = require("socket.io")(server, {
-        cors: { origin: "*", methods: ["GET", "POST"] },
-    });
-
-    /*
-    GLOBAL WHISPER CONFIG
-
-    */
-    const whisperConfig = {
-        model: "whisper-1",
-        language: "en",
-    };
-
-    const whisperApiEndpoint = `https://api.openai.com/v1/audio/transcriptions`;
-
-    const mock_user = require("./mock_data/user.json");
-    const mock_lesson = require("./mock_data/lesson.json");
-
-    //Serve next.js
-    // const handle = next({ dev }).getRequestHandler();
-    // app.use('*', handle);
-
+app.post("/api/lessons", async (req, res) => {
     try {
-        io.on("connection", (socket) => {
-            handleConnection(socket);
-            // var current_user = mock_user;
-            // console.log("Socket connected");
+        if (fs.existsSync("temp_data/lessons.json")) {
+            console.log(JSON.stringify(req.body, null, 2));
+            const lessons = JSON.parse(
+                fs.readFileSync("temp_data/lessons.json", "utf8")
+            );
+            const lessonID = uuidv4();
+            req.body.id = lessonID;
+            lessons[lessonID] = req.body;
+            fs.writeFileSync("temp_data/lessons.json", JSON.stringify(lessons));
+            res.status(201).json("Lesson created");
+        } else {
+            fs.mkdirSync("temp_data");
+            const lessons = {};
+            const lessonID = uuidv4();
+            req.body.id = lessonID;
+            lessons[lessonID] = req.body;
+            fs.writeFileSync("temp_data/lessons.json", JSON.stringify(lessons));
 
-            // socket.on("authenticate", (data) => {
-            //     console.log("Socket authenticated");
-            //     socket.emit("authenticated", true);
-
-            //     /*
-            //     Whisper streaming api
-            //     */
-
-            //     socket.on("transcribe_audio", ({ file }) => {
-            //         console.log("Received audio");
-            //         console.log("file:", file);
-            //         const body = new FormData();
-            //         body.append("file", file, "transcription.webm");
-
-            //         for (key of Object.keys(whisperConfig)) {
-            //             body.append(key, whisperConfig[key]);
-            //         }
-
-            //         const headers = {
-            //             "Content-Type": "multipart/form-data",
-            //             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            //         };
-
-            //         axios
-            //             .post(whisperApiEndpoint, body, {
-            //                 headers,
-            //             })
-            //             .then((response) => {
-            //                 // console.log(response);
-            //                 socket.emit(
-            //                     "transcribed_audio",
-            //                     response.data.text
-            //                 );
-            //             })
-            //             .catch((error) => {
-            //                 console.log("error:", error.response);
-            //                 // console.log("error data:", error.data);
-            //                 socket.disconnect();
-            //             });
-            //     });
-
-            //     /*
-            //     Google speech to text
-            //     */
-
-            //     socket.on("text_data", async (data) => {
-            //         console.log("Received text data");
-            //         console.log(data);
-            //         const request = {
-            //             input: {
-            //                 text: data,
-            //             },
-            //             voice: {
-            //                 languageCode: "en-GB",
-            //                 ssmlGender: SsmlVoiceGender.NEUTRAL,
-            //             },
-            //             audioConfig: {
-            //                 audioEncoding: AudioEncoding.MP3,
-            //                 // speakingRate: 0.5,
-            //             },
-            //         };
-
-            //         const [response] = await ttsClient.synthesizeSpeech(
-            //             request
-            //         );
-            //         // console.log("response:", response);
-            //         const base64 = response.audioContent.toString("base64");
-
-            //         socket.emit("audio_data", base64);
-            //     });
-
-            //     /*
-            //     Lessons API
-            //     */
-
-            //     socket.on("start_lesson", async (data) => {
-            //         console.log("Received connection to start_lesson");
-
-            //         const current_lesson = mock_lesson;
-            //         const lesson = new XLesson({
-            //             lesson: current_lesson,
-            //             student: current_user,
-            //         });
-            //         socket.emit("lesson_info", current_lesson);
-            //         lesson.chat.messageEmitter.on(
-            //             "message",
-            //             (message) =>
-            //                 message &&
-            //                 socket.emit("lesson_response_stream", message)
-            //         );
-
-            //         const completeChat = async ({ message, first }) => {
-            //             const { learningObjectiveNumber, finished, content } =
-            //                 await lesson.continueConversation(message);
-
-            //             socket.emit("lesson_response_data", {
-            //                 learningObjectiveNumber: first
-            //                     ? -1
-            //                     : learningObjectiveNumber,
-            //                 response: content,
-            //             });
-
-            //             if (finished) socket.emit("lesson_finished", true);
-            //         };
-
-            //         completeChat({ first: true });
-
-            //         socket.on("lesson_message_x", async (message) => {
-            //             await completeChat({ message });
-            //             // lesson.continueConversation(message);
-            //         });
-            //     });
-            // });
-        });
-    } catch (error) {
-        console.log(error);
+            res.status(201).json("Lesson created");
+        }
+    } catch {
+        res.status(500).json("Error creating lesson");
     }
+});
 
-    /*
-At the end of your response return a JSON object containing these values:
-Return a json message containing two keys: "Finished" which describes whether or not the lesson is done, and "learningObjectiveNumber" which contains a number corresponding to thelearningObjectiveNumber the student will be on from now on.
-*/
+app.get("/api/lessons", async (req, res) => {
+    try {
+        const lessons = JSON.parse(
+            fs.readFileSync("temp_data/lessons.json", "utf8")
+        );
+        console.log(lessons);
+        res.status(200).json(lessons);
+    } catch {
+        res.status(500).json("Error getting lessons");
+    }
+});
 
-    server.listen(3001, () => {
-        console.log("Started listening on port 3001");
+app.delete("/api/lessons/:id", async (req, res) => {
+    try {
+        const lessons = JSON.parse(
+            fs.readFileSync("temp_data/lessons.json", "utf8")
+        );
+        delete lessons[req.params.id];
+        fs.writeFileSync("temp_data/lessons.json", JSON.stringify(lessons));
+        res.status(200).json("Lesson deleted");
+    } catch {
+        res.status(500).json("Error deleting lesson");
+    }
+});
+
+const server = require("http").createServer(app);
+const io = require("socket.io")(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] },
+});
+
+try {
+    io.on("connection", (socket) => {
+        handleConnection(socket);
     });
-})();
+} catch (error) {
+    console.log(error);
+}
+
+server.listen(3001, () => {
+    console.log("Started listening on port 3001");
+});
