@@ -69,15 +69,21 @@ const createLesson = async (req, resp) => {
               // Setting images and creating their names
               const lo1_media = req?.files?.lo1_media;
               const lo1_mediaFile = fs.readFileSync(lo1_media.path);
-              const lo1_media_name = `${title?.replaceAll(' ', '_')}_lo1_media.${lo1_media?.type.split("/").pop()}`;
+              const lo1_media_name = `${title}_lo1_media.${lo1_media?.type
+                .split('/')
+                .pop()}`;
 
               const lo2_media = req?.files?.lo2_media;
               const lo2_mediaFile = fs.readFileSync(lo2_media.path);
-              const lo2_media_name = `${title?.replaceAll(' ', '_')}_lo2_media.${lo2_media?.type.split("/").pop()}`;
+              const lo2_media_name = `${title}_lo2_media.${lo2_media?.type
+                .split('/')
+                .pop()}`;
 
               const lo3_media = req?.files?.lo3_media;
               const lo3_mediaFile = fs.readFileSync(lo3_media.path);
-              const lo3_media_name = `${title?.replaceAll(' ', '_')}_lo3_media.${lo3_media?.type.split("/").pop()}`;
+              const lo3_media_name = `${title}_lo3_media.${lo3_media?.type
+                .split('/')
+                .pop()}`;
 
               // Check image size
               if (lo1_media?.size >= 2e+6 || lo2_media?.size >= 2e+6 || lo3_media?.size >= 2e+6) {
@@ -187,15 +193,21 @@ const updateLesson = async (req, resp) => {
               // Setting images and creating their names
               const lo1_media = req?.files?.lo1_media;
               const lo1_mediaFile = fs.readFileSync(lo1_media.path);
-              const lo1_media_name = `${title?.replaceAll(' ', '_')}_lo1_media.${lo1_media?.type.split("/").pop()}`;
+              const lo1_media_name = `${title}_lo1_media.${lo1_media?.type
+                .split('/')
+                .pop()}`;
 
               const lo2_media = req?.files?.lo2_media;
               const lo2_mediaFile = fs.readFileSync(lo2_media.path);
-              const lo2_media_name = `${title?.replaceAll(' ', '_')}_lo2_media.${lo2_media?.type.split("/").pop()}`;
+              const lo2_media_name = `${title}_lo2_media.${lo2_media?.type
+                .split('/')
+                .pop()}`;
 
               const lo3_media = req?.files?.lo3_media;
               const lo3_mediaFile = fs.readFileSync(lo3_media.path);
-              const lo3_media_name = `${title?.replaceAll(' ', '_')}_lo3_media.${lo3_media?.type.split("/").pop()}`;
+              const lo3_media_name = `${title}_lo3_media.${lo3_media?.type
+                .split('/')
+                .pop()}`;
 
               // Check image size
               if (lo1_media?.size >= 2e+6 || lo2_media?.size >= 2e+6 || lo3_media?.size >= 2e+6) {
