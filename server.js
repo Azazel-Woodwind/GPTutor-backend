@@ -11,22 +11,19 @@ app.use(cors());
 
 const handleConnection = require("./handlers/connection.handler.");
 
-const superAdminAuth = require("./routes/superAdminAuth");
 const superAdminLogin = require("./routes/superAdminLogin");
 const auth = require("./routes/auth");
 const login = require("./routes/login");
 const resetPassword = require("./routes/resetPassword");
 const superAdminSignUp = require("./routes/superAdminSignUp");
-const superAdminLogin = require("./routes/superAdminLogin");
 const adminSignUp = require("./routes/adminSignUp");
 const adminLogin = require("./routes/adminLogin");
-const resetPassword = require("./routes/resetPassword");
 const lessons = require("./routes/lessons");
 const waitList = require("./routes/waitList");
 const quiz = require("./routes/quiz");
 
-app.use("/api/admin-sign-up", superAdminAuth);
-app.use("/api/admin-login", superAdminLogin);
+// app.use("/api/admin-sign-up", superAdminAuth);
+// app.use("/api/admin-login", superAdminLogin);
 app.use("/api/register", auth);
 app.use("/api/login", login);
 app.use("/api/reset-password", resetPassword);
@@ -98,6 +95,7 @@ const io = require("socket.io")(server, {
 
 try {
     io.on("connection", socket => {
+        
         handleConnection(socket);
     });
 } catch (error) {
