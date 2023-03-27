@@ -28,6 +28,8 @@
         "ws": "^8.13.0"
     },
     "devDependencies": {
+        "@types/express": "^4.17.17",
+        "@types/express-formidable": "^1.2.0",
         "prompt-sync": "^4.2.0",
         "typescript": "^5.0.2"
     }
