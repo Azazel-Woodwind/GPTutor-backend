@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, Router } from "express";
 import { supabase } from "../config/supa";
 import { validateUser } from "../models/auth";

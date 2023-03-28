@@ -1,6 +1,8 @@
-import { supabase } from "../../config/supa";
+// @ts-nocheck
+
+import { supabase } from "../config/supa";
 import { Router } from "express";
-import { createWaitList } from "../../controllers/waitingList/waitingListController";
+import { createWaitList } from "../controllers/waitingList/waitingListController";
 const router = Router();
 
 //Create Wait List

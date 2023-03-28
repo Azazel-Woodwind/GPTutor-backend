@@ -1,11 +1,11 @@
-import { UserData } from "../src/lib/jwt.utils";
+// import { UserData } from "../src/lib/jwt.utils";
 
 declare global {
-  namespace Express {
-    interface Request {
-      user?: UserData;
+    namespace Express {
+        interface Request {
+            user?: User;
+        }
     }
-  }
 }
 
 export {};

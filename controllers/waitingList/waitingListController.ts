@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { waitListValidate } from "../../validations/waitListValidate";
 import { supabase } from "../../config/supa";
 import HandleResponse from "../../models/waitList/handleResponseWaitList";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from "../config/supa";
 import { Router } from "express";
 

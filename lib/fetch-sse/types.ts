@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Keyv from "keyv";
 
 export type Role = "user" | "assistant" | "system";

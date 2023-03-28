@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "express";
 import routeProtection, {
     TEACHER_ACCESS_LEVEL,

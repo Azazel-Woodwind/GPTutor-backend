@@ -1,6 +1,7 @@
+// @ts-nocheck
 import Joi from "joi";
 
-function validateUser(user) {
+function validateUser(user: any) {
     const schema = Joi.object({
         name: Joi.string().required().min(3).max(20),
         password: Joi.string().required().min(5).max(10),

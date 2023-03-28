@@ -1,3 +1,4 @@
+// @ts-nocheck
 class HandleResponse {
     insertLesson = body => {
         const {

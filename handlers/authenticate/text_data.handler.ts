@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ttsClient, SsmlVoicegender, AudioEncoding } from "../../lib/tts.utils";
 
 const text_dataHandler = async (data, socket) => {

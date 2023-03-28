@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { validateUser } from "../models/login";
 import { supabase } from "../config/supa";
 import { Router } from "express";
@@ -21,7 +22,7 @@ router.post("/", async (req, resp) => {
                 resp.status(400).send(response?.error);
             } else {
                 const { access_token, token_type, expires_in, refresh_token } =
-                    response?.data?.session;
+                    response?.data?.session!;
 
                 const email = response?.data?.user?.email;
                 supabase

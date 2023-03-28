@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Joi from "joi";
 
 export function waitListValidate(list) {

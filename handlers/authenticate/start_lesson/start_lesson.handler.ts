@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import fs from "fs";
 import mockLesson from "../../../mock_data/mockLessons.json";
 import mockUser from "../../../mock_data/mockuser.json";
@@ -23,7 +25,7 @@ const start_lessonHandler = (data, socket) => {
     // console.log(current_lesson);
 
     const current_lesson = mockLesson["l2c3qu4js5rdbxuptoazk"];
-    const current_user = mockUser;
+    const current_user = socket.user;
 
     const lesson = new XLesson({
         lesson: current_lesson,

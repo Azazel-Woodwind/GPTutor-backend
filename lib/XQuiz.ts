@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { generateQuizPrompt } from "./prompts.utils";
 import { ChatGPTConversation } from "./ChatGPTConversation";
 class XQuiz {

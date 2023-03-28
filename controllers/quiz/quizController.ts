@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { supabase } from "../../config/supa";
 import HandleResponse from "../../models/quiz/handleResponseQuiz";
 import { validateQuiz } from "../../validations/quizValidate";

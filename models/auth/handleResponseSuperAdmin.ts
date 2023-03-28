@@ -1,3 +1,4 @@
+// @ts-nocheck
 class HandleResponse {
     handleRegisterSuperAdmin = body => {
         const { email, password } = body;

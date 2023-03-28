@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { supabase } from "../../config/supa";
 import {
     validateSASignUp,

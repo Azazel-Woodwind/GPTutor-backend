@@ -1,3 +1,4 @@
+// @ts-nocheck
 import authenticateHandler from "./authenticate/authenticate.handler";
 
 const handleConnection = socket => {

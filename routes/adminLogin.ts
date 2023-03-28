@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { loginAdmin } from "../controllers/auth/adminAuthController";
 import { Router } from "express";
 const router = Router();

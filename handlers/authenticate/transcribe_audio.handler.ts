@@ -1,3 +1,4 @@
+// @ts-nocheck
 import FormData from "form-data";
 import axios from "axios";
 

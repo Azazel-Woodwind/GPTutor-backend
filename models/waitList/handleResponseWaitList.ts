@@ -1,3 +1,4 @@
+// @ts-nocheck
 class HandleResponse {
     createWaitList = body => {
         const { name, email, educational_level, subject } = body;
@@ -11,4 +12,4 @@ class HandleResponse {
     };
 }
 
-export default new handleResponse();
+export default new HandleResponse();

@@ -1,6 +1,7 @@
+// @ts-nocheck
 import Joi from "joi";
 
-export function validateUser(user) {
+export function validateUser(user: User) {
     const schema = Joi.object({
         password: Joi.string().required(),
         email: Joi.string()

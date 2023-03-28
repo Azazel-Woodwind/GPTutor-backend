@@ -1,4 +1,6 @@
-import { supabase } from "../..config/supa.js";
+// @ts-nocheck
+
+import { supabase } from "../../config/supa";
 import transcribeAudioHandler from "./transcribe_audio.handler";
 import textDataHandler from "./text_data.handler";
 import startLessonHandler from "./start_lesson/start_lesson.handler";
@@ -35,6 +37,7 @@ const handleAuthenticate = async (data, socket) => {
             Lessons API
         */
 
+        // socket.on("start_x_conversation", data => )
         socket.on("start_lesson", data => startLessonHandler(data, socket));
 
         socket.on("generate_quiz", data => generateQuizHandler(data, socket));

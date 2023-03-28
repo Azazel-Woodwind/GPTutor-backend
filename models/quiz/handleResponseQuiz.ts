@@ -1,3 +1,4 @@
+// @ts-nocheck
 class HandleResponse {
     createQuiz = body => {
         const { lesson_uuid, mcqs, written } = body;

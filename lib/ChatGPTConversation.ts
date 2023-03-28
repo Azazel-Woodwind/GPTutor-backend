@@ -1,7 +1,7 @@
-const { getJsonDataPrompt } = require("./prompts.utils");
-const EventEmitter = require("events");
-
-const { fetchSSE } = require("./fetch-sse/fetch-sse");
+// @ts-nocheck
+import { GetJSONDataPrompt } from "./prompts.utils";
+import EventEmitter from "events";
+import { fetchSSE } from "./fetch-sse/fetch-sse";
 
 class ChatGPTConversation {
     constructor({
@@ -42,7 +42,7 @@ class ChatGPTConversation {
                 headers,
                 body: JSON.stringify(body),
                 // signal: abortSignal,
-                onMessage: (data) => {
+                onMessage: data => {
                     // console.log("data:", data);
                     if (data === "[DONE]") {
                         result.content = result.content.trim();
@@ -89,4 +89,4 @@ class ChatGPTConversation {
     }
 }
 
-module.exports = { ChatGPTConversation };
+export default ChatGPTConversation;

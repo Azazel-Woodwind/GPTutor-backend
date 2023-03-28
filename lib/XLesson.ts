@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ChatGPTConversation } from "./ChatGPTConversation";
 
 import {
