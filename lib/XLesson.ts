@@ -14,6 +14,9 @@ interface LessonData {
     chatHistory: { role: string; content: string }[];
 }
 
+const TEMPORARY_STUDENT_USAGE = "3040";
+const TEMPORARY_FAKE_USER_LIMIT = "5000";
+
 class XLesson {
     private heavyPrompt: string;
     private chat: ChatGPTConversation;
@@ -28,6 +31,9 @@ class XLesson {
     }
 
     async continueConversation(message: string | undefined) {
+        if (TEMPORARY_STUDENT_USAGE + this.chat.usage > TEMPORARY_FAKE_LIMIT)
+            throw new Error("token quota");
+
         message &&
             this.chat.chatHistory.push({ role: "user", content: message });
         console.log("continueConversation");

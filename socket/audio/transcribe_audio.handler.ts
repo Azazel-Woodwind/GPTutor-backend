@@ -29,7 +29,6 @@ const transcribe_audioHandler = ({ file }, socket) => {
             headers,
         })
         .then(response => {
-            // console.log(response);
             socket.emit("transcribed_audio", response.data.text);
         })
         .catch(error => {

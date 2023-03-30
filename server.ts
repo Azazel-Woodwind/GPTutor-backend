@@ -2,7 +2,7 @@ import cors from "cors";
 import fs from "fs";
 import express, { Express } from "express";
 import apiRouter from "./routes/api";
-import handleConnection from "./handlers/connection.handler";
+import socketHandler from "./socket/socket.handler";
 
 const app: Express = express();
 
@@ -15,10 +15,6 @@ const io = require("socket.io")(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-try {
-    io.on("connection", handleConnection);
-} catch (error) {
-    console.log(error);
-}
+socketHandler(io);
 
 export default server;

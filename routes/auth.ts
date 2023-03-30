@@ -16,6 +16,8 @@ interface User {
 
 // Auth Sign Up
 router.post("/", async (req: Request, resp: Response) => {
+    console.log("registering user");
+
     const { error } = validateUser(req.body);
     if (error)
         return resp.status(400).send({ error: error.details[0].message });
@@ -45,6 +47,8 @@ router.post("/", async (req: Request, resp: Response) => {
                         password,
                     });
 
+                    if (error) resp.status(400).json(error.message);
+
                     if (data) {
                         const { error } = await supabase.from("users").insert({
                             name: name,
@@ -55,11 +59,11 @@ router.post("/", async (req: Request, resp: Response) => {
                             main_subjects: main_subjects,
                             uuid: data?.user?.id,
                         });
+                        if (error) {
+                            resp.status(400).json(error.message);
+                        }
                     }
 
-                    if (error) {
-                        resp.status(400).send(error?.message);
-                    }
                     resp.send({
                         message:
                             "Kindly check your email to activate your account.",

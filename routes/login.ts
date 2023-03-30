@@ -32,7 +32,7 @@ router.post("/", async (req, resp) => {
                     .then(res => {
                         resp.send({
                             token: {
-                                acceess_token: access_token,
+                                access_token: access_token,
                                 token_type: token_type,
                                 expires_in: expires_in,
                                 refresh_token: refresh_token,

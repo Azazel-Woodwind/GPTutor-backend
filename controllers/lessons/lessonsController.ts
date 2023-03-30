@@ -13,9 +13,12 @@ const bucket = supabase.storage.from("lessons");
 
 /***************************** Get All Lessons ******************************/
 export const getAllLessons = async (req: Request, resp: Response) => {
+    console.log("here");
+
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(" ")[1];
     if (token === undefined) {
+        // if (false) { // testing
         resp.status(401).send({ message: "Unauthorized" });
     } else {
         await supabase.auth.getUser(token).then(async response => {

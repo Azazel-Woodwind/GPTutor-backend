@@ -1,7 +1,9 @@
 // @ts-nocheck
-import { GetJSONDataPrompt } from "./prompts.utils";
 import EventEmitter from "events";
 import { fetchSSE } from "./fetch-sse/fetch-sse";
+import GPT3Tokenizer from "gpt3-tokenizer";
+
+const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 
 class ChatGPTConversation {
     constructor({
@@ -10,11 +12,16 @@ class ChatGPTConversation {
     }) {
         this.chatHistory = chatHistory;
         this.heavyPrompt = heavyPrompt;
+        this.usage = tokenizer.encode(heavyPrompt).text.length;
         this.messageEmitter = new EventEmitter();
     }
 
-    async generateChatCompletion(message, opts) {
-        return new Promise((resolve, reject) => {
+    generateChatCompletion = async (message: string | undefined, opts) => {
+        console.log("Generating chat completion: ", message, opts);
+        if (message?.length)
+            this.usage += tokenizer.encode(message).text.length;
+
+        return new Promise(async (resolve, reject) => {
             const result = {
                 role: "assistant",
                 content: "",
@@ -35,8 +42,6 @@ class ChatGPTConversation {
 
             const url = "https://api.openai.com/v1/chat/completions";
 
-            console.log(body);
-
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -52,6 +57,7 @@ class ChatGPTConversation {
                         });
                     }
 
+                    this.usage += 1;
                     try {
                         const response = JSON.parse(data);
 
@@ -81,12 +87,13 @@ class ChatGPTConversation {
                             "OpenAI stream SEE event unexpected error",
                             err
                         );
+
                         return reject(err);
                     }
                 },
             });
         });
-    }
+    };
 }
 
 export default ChatGPTConversation;
