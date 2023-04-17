@@ -1,13 +1,24 @@
 import cors from "cors";
-import fs from "fs";
 import express, { Express } from "express";
-import apiRouter from "./routes/api";
+import deserialiseUser from "./middleware/deserialiseUser";
+import apiRouter from "./routes/api.router";
 import socketHandler from "./socket/socket.handler";
+import formidableMiddleware from "express-formidable";
 
 const app: Express = express();
 
+app.use(deserialiseUser);
+
 app.use(express.json());
+app.use(
+    formidableMiddleware({
+        encoding: "utf-8",
+        multiples: true, // req.files to be an array of files
+    })
+);
+
 app.use(cors());
+
 app.use("/api", apiRouter);
 
 const server = require("http").createServer(app);

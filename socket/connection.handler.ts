@@ -5,29 +5,45 @@ import textDataHandler from "./audio/text_data.handler";
 import startLessonHandler from "./lessons/start_lesson.handler";
 import generateQuizHandler from "./assignments/generate_quiz.handler";
 import startChatHandler from "./chat/start_chat.handler";
+import next from "next";
+import supabase from "../config/supa";
 
-const handleConnection = socket => {
+const handleConnection = async socket => {
     console.log("Socket connected");
 
-    const route = handler => data => handler(data, socket);
-
     try {
-        //Whisper streaming api
+        const route = handler => data => handler(data, socket);
+        // Whisper streaming api
         socket.on("transcribe_audio", route(transcribeAudioHandler));
-        //Google speech to text
+        // Google speech to text
         socket.on("text_data", route(textDataHandler));
-        //X Conversation API
+        // X Conversation API
         socket.on("start_chat", route(startChatHandler));
-        //Lessons API
+        // Lessons API
         socket.on("start_lesson", route(startLessonHandler));
-        //Assignments API
+        // Assignments API
         socket.on("generate_quiz", route(generateQuizHandler));
+        // On disconnect
+        socket.on("disconnect", async reason => {
+            console.log("Socket disconnected.", reason);
+            const { data, error } = await supabase.rpc("increment_usage", {
+                id: socket.user.id,
+                delta: socket.currentUsage,
+            });
+        });
     } catch (err) {
         switch (err) {
             case "token quota":
+                const { data, error } = await supabase
+                    .from("usage_plans")
+                    .select("max_daily_tokens")
+                    .eq("plan", socket.user.usage_plan)
+                    .single();
+
                 socket.emit("token_quota", {
-                    usage: socket.user.usage,
-                    limit: socket.user.limit,
+                    usage: socket.user.daily_token_usage,
+                    plan: socket.user.usage_plan,
+                    limit: data.max_daily_tokens,
                 });
                 break;
             default:

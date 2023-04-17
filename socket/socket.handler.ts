@@ -1,8 +1,8 @@
-import authenticationHandler from "./authenticate.handler";
+import deserialiseUser from "./middleware/deserialiseUser";
 import connectionHandler from "./connection.handler";
 
 const socketHandler = io => {
-    io.use(authenticationHandler);
+    io.use(deserialiseUser);
 
     io.on("connection", connectionHandler);
 };

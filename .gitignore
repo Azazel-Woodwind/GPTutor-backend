@@ -4,4 +4,5 @@ temp_data
 .env
 package-lock.json
 yarn.lock
-test.js
+test.ts
+.vsls.json

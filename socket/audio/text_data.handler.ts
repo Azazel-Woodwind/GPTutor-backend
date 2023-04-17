@@ -2,8 +2,6 @@
 import { ttsClient, SsmlVoicegender, AudioEncoding } from "../../lib/tts.utils";
 
 const text_dataHandler = async (data, socket) => {
-    console.log("Received text data");
-    console.log(data);
     const request = {
         audioConfig: {
             audioEncoding: "LINEAR16",
@@ -27,7 +25,7 @@ const text_dataHandler = async (data, socket) => {
 
         socket.emit("audio_data", base64);
     } catch (error) {
-        console.log(error);
+        //console.log(error);
     }
 };
 

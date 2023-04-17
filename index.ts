@@ -2,6 +2,8 @@ import server from "./server";
 import dotenv from "dotenv";
 dotenv.config();
 
+console.log("Starting server");
+
 const port = process.env.PORT || 3002;
 
 async function main() {

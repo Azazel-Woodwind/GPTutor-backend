@@ -1,7 +1,9 @@
-// @ts-nocheck
-
+//@ts-nocheck
 import { NextFunction, Request, Response } from "express";
-import { supabase } from "../config/supa";
+import supabase from "../config/supa";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
 export default async function deserialiseUser(
     req: Request,
@@ -17,13 +19,24 @@ export default async function deserialiseUser(
 
     const accessToken = req.headers.authorization.split(" ")[1];
 
-    const user = await supabase.auth.getUser(accessToken);
-
-    if (!user) {
+    try {
+        const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+        const userID = decoded.sub;
+        const { data: user, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", userID)
+            .single();
+        if (error) {
+            throw error;
+        }
+        req.user = {
+            id: user.id,
+            access_level: user.access_level,
+        };
+    } catch (error) {
         return next();
     }
-
-    req.user = user;
 
     return next();
 }

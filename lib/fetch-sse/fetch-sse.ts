@@ -14,7 +14,6 @@ export async function fetchSSE(
 ) {
     const { onMessage, ...fetchOptions } = options;
     const res = await fetch(url, fetchOptions);
-    console.log(res);
     if (!res.ok) {
         let reason: string;
 
