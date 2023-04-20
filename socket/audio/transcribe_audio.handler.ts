@@ -9,13 +9,14 @@ const transcribe_audioHandler = ({ file }, socket) => {
     const whisperConfig = {
         model: "whisper-1",
         language: "en",
+        temperature: 0,
     };
     // console.log("file:", file);
 
     const body = new FormData();
     body.append("file", file, "speech.webm");
 
-    for (key of Object.keys(whisperConfig)) {
+    for (let key of Object.keys(whisperConfig)) {
         body.append(key, whisperConfig[key]);
     }
 
@@ -23,6 +24,8 @@ const transcribe_audioHandler = ({ file }, socket) => {
         "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     };
+
+    console.log("BODY:", body);
 
     axios
         .post(whisperApiEndpoint, body, {

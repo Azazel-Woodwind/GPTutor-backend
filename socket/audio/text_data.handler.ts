@@ -25,7 +25,7 @@ const text_dataHandler = async (data, socket) => {
 
         socket.emit("audio_data", base64);
     } catch (error) {
-        //console.log(error);
+        console.log(error);
     }
 };
 

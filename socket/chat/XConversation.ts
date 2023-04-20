@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { conversation } from "../../lib/Oldprompts.utils";
+import { conversation } from "../../lib/prompts.utils";
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
 const { systemPrompt, dataPrompt } = conversation;
 import checkUserMessageGuidelines from "../message.handler";
@@ -14,7 +14,6 @@ class XConversation {
     private chat: ChatGPTConversation;
 
     constructor({ user, chatHistory, context, socket }: ChatData) {
-        //Provide actual user
         this.user = user;
         this.chat = new ChatGPTConversation({
             chatHistory: chatHistory && chatHistory,

@@ -26,6 +26,8 @@ const start_lessonHandler = async (data, socket) => {
         return;
     }
 
+    console.log("Current lesson:", current_lesson);
+
     const current_user = socket.user;
 
     const lesson = new XLesson({

@@ -37,6 +37,8 @@ function listImages(images) {
 }
 
 const generateUserInformation = user => {
+    // console.log("STUDENT INFO:", JSON.stringify(user.user_metadata));
+
     return `Student data:
     ${JSON.stringify(user.user_metadata)}`;
 };

@@ -1,4 +1,4 @@
-import { CheckUserGuidelines } from "../lib/Oldprompts.utils";
+import { CheckUserGuidelines } from "../lib/prompts.utils";
 import ChatGPTConversation from "../lib/ChatGPTConversation";
 
 export async function checkUserMessageGuidelines(socket, message) {
@@ -8,7 +8,7 @@ export async function checkUserMessageGuidelines(socket, message) {
     });
 
     const guidelines = await chat.getData(CheckUserGuidelines);
-    console.log(guidelines);
+    // console.log(guidelines);
     return guidelines;
 }
 

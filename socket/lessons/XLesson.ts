@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
-import { lesson } from "../../lib/Oldprompts.utils";
+import { lesson } from "../../lib/prompts.utils";
 
 import checkUserMessageGuidelines from "../message.handler";
 
@@ -43,15 +43,18 @@ class XLesson {
     }
 
     async continueConversation({ message, first }) {
-        const { valid, reason } = await checkUserMessageGuidelines(
-            socket,
-            message
-        );
+        let valid, reason;
+        if (!first) {
+            ({ valid, reason } = await checkUserMessageGuidelines(
+                this.socket,
+                message
+            ));
+        }
 
-        if (valid)
+        if (valid || first)
             this.chat
                 .generateResponse(message)
-                .catch(err => console.log(err))
+
                 .then(async response => {
                     const { learningObjectiveNumber, finished } =
                         await this.chat.getData(dataPrompt);
@@ -64,7 +67,8 @@ class XLesson {
                     });
 
                     if (finished) this.socket.emit("lesson_finished", true);
-                });
+                })
+                .catch(err => console.log(err));
         else {
             this.socket.emit("lesson_error", reason);
         }
