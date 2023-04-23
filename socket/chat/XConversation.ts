@@ -28,6 +28,11 @@ class XConversation {
             message => message && socket.emit("chat_response_stream", message)
         );
 
+        this.chat.messageEmitter.on(
+            "audioData",
+            audioData => audioData && socket.emit("chat_audio_data", audioData)
+        );
+
         //this.continueConversation({ first: true });
         this.socket.on("chat_message_x", ({ message, context }) => {
             if (context) this.updateContext(context);
@@ -38,38 +43,35 @@ class XConversation {
     }
 
     async continueConversation({ message, first }) {
-        const { valid, reason } = await checkUserMessageGuidelines(
-            this.socket,
-            message
-        );
+        checkUserMessageGuidelines(this.socket, message)
+            .then(({ valid, reason }) => {
+                if (valid)
+                    this.chat.generateResponse(message).then(async response => {
+                        this.socket.emit("chat_response_data", {
+                            response,
+                        });
 
-        if (valid)
-            this.chat
-                .generateResponse(message)
-                .then(async response => {
-                    this.socket.emit("chat_response_data", {
-                        response,
+                        const data = await this.chat.getData(dataPrompt);
+                        if (data.navigateTo)
+                            this.socket.emit("navigate", data.navigateTo);
                     });
-
-                    const data = await this.chat.getData(dataPrompt);
-                    if (data.navigateTo)
-                        this.socket.emit("navigate", data.navigateTo);
-                })
-                .catch(err => {
-                    console.log(err);
-                });
-        else {
-            this.socket.emit(
-                "chat_error",
-                `We were unable to process your message, as it was flagged for violating our usage guidelines.
+                // .catch(err => {
+                //     console.log(err);
+                // });
+                else {
+                    this.socket.emit(
+                        "chat_error",
+                        `We were unable to process your message, as it was flagged for violating our usage guidelines.
                 WARNING: X will remember this decision.$
 
                 - ${reason}
 
                 Learn more about our *guidelines*
             `
-            );
-        }
+                    );
+                }
+            })
+            .catch(console.log);
     }
 
     updateContext(context) {

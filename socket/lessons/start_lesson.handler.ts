@@ -3,28 +3,28 @@ import startLessonSchema from "../schema/start_lesson.schema";
 import { XLesson } from "./XLesson";
 
 const start_lessonHandler = async (data, socket) => {
-    try {
-        startLessonSchema.parse(data);
-    } catch (error) {
-        socket.emit("start_lesson_error", error.issues);
-        return;
-    }
+    // try {
+    //     startLessonSchema.parse(data);
+    // } catch (error) {
+    //     socket.emit("start_lesson_error", error.issues);
+    //     return;
+    // }
 
-    const { lessonID } = data;
+    const { current_lesson } = data;
     console.log("Received connection to start_lesson");
-    console.log("Lesson ID:", lessonID);
+    // console.log("Lesson ID:", lessonID);
 
-    const { data: current_lesson, error } = await supabase
-        .from("lessons")
-        .select("*, learning_objectives(title, images(link, description))")
-        .eq("id", lessonID)
-        .single();
+    // const { data: current_lesson, error } = await supabase
+    //     .from("lessons")
+    //     .select("*, learning_objectives(title, images(link, description))")
+    //     .eq("id", lessonID)
+    //     .single();
 
-    if (error) {
-        console.log(error);
-        socket.emit("start_lesson_error", error);
-        return;
-    }
+    // if (error) {
+    //     console.log(error);
+    //     socket.emit("start_lesson_error", error);
+    //     return;
+    // }
 
     console.log("Current lesson:", current_lesson);
 

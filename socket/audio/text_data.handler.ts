@@ -10,7 +10,7 @@ const text_dataHandler = async (data, socket) => {
             speakingRate: 1,
         },
         input: {
-            text: data,
+            text: data.text,
         },
         voice: {
             languageCode: "en-GB",
@@ -19,11 +19,13 @@ const text_dataHandler = async (data, socket) => {
     };
 
     try {
+        console.log("CONVERTING TO SPEECH DATA:", data);
+
         const [response] = await ttsClient.synthesizeSpeech(request);
         // console.log("response:", response);
         const base64 = response.audioContent.toString("base64");
 
-        socket.emit("audio_data", base64);
+        socket.emit(`${data.channel}_audio_data`, base64);
     } catch (error) {
         console.log(error);
     }

@@ -4,6 +4,7 @@ import { fetchSSE } from "./fetch-sse/fetch-sse";
 import GPT3Tokenizer from "gpt3-tokenizer";
 import { findJsonInString } from "./XUtils";
 import supabase from "../config/supa";
+import { ttsClient, SsmlVoicegender, AudioEncoding } from "./tts.utils";
 
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
@@ -19,6 +20,8 @@ class ChatGPTConversation {
     }
 
     async getData(dataPrompt) {
+        await this.checkExceededTokenQuota();
+
         // tries to get json data a maximum of 5 times
         let count = 0,
             json;
@@ -36,7 +39,7 @@ class ChatGPTConversation {
         return json;
     }
 
-    async generateResponse(message) {
+    async checkExceededTokenQuota() {
         const exceeded = await exceededTokenQuota(
             this.socket.user.id,
             this.socket.user.usage_plans.max_daily_tokens
@@ -57,6 +60,10 @@ class ChatGPTConversation {
 
             throw new Error("token quota");
         }
+    }
+
+    async generateResponse(message) {
+        await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
 
@@ -102,6 +109,8 @@ class ChatGPTConversation {
 
             const url = "https://api.openai.com/v1/chat/completions";
 
+            let currentSentence = "";
+
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -118,6 +127,17 @@ class ChatGPTConversation {
                             );
                             this.socket.currentUsage = 0;
                         }
+
+                        if (currentSentence.length > 0) {
+                            const audio = await this.getAudioData(
+                                currentSentence
+                            );
+                            this.messageEmitter.emit("message", {
+                                text: currentSentence,
+                                audio,
+                            });
+                        }
+
                         return resolve({
                             role: result.role,
                             content: result.content,
@@ -133,21 +153,42 @@ class ChatGPTConversation {
                         if (response?.choices?.length) {
                             const delta = response.choices[0].delta;
                             result.delta = delta.content;
-                            if (delta?.content) result.content += delta.content;
+                            if (delta?.content) {
+                                result.content += delta.content;
+                            }
                             result.detail = response;
 
                             if (delta.role) {
                                 result.role = delta.role;
                             }
 
+                            opts?.onProgress?.(result);
+
                             if (!opts?.silent) {
+                                if (!delta.content) return;
+
+                                currentSentence += delta.content;
+                                // console.log(
+                                //     "currentSentence:",
+                                //     currentSentence
+                                // );
+
+                                if (
+                                    delta.content.includes(".") ||
+                                    delta.content.includes("?") ||
+                                    delta.content.includes("!")
+                                ) {
+                                    const temp = currentSentence;
+                                    currentSentence = "";
+                                    this.getAudioData(temp);
+                                }
+                                // console.log("delta.content:", delta.contents);
+
                                 this.messageEmitter.emit(
                                     "message",
                                     delta.content
                                 );
                             }
-
-                            opts?.onProgress?.(result);
                         }
                     } catch (err) {
                         console.warn(
@@ -158,9 +199,39 @@ class ChatGPTConversation {
                         return reject(err);
                     }
                 },
-            });
+            }).catch(err => console.log("err:", err));
         });
     };
+
+    async getAudioData(text) {
+        const request = {
+            audioConfig: {
+                audioEncoding: "LINEAR16",
+                effectsProfileId: ["small-bluetooth-speaker-class-device"],
+                pitch: 0,
+                speakingRate: 1,
+            },
+            input: {
+                text,
+            },
+            voice: {
+                languageCode: "en-GB",
+                name: "en-GB-Neural2-D",
+            },
+        };
+
+        try {
+            console.log("CONVERTING TO SPEECH DATA:", text);
+
+            const [response] = await ttsClient.synthesizeSpeech(request);
+            // console.log("response:", response);
+            const base64 = response.audioContent.toString("base64");
+
+            this.messageEmitter.emit("audioData", base64);
+        } catch (error) {
+            console.log(error);
+        }
+    }
 }
 
 export default ChatGPTConversation;

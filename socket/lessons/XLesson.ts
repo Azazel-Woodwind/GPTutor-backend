@@ -34,6 +34,12 @@ class XLesson {
             message => message && socket.emit("lesson_response_stream", message)
         );
 
+        this.chat.messageEmitter.on(
+            "audioData",
+            audioData =>
+                audioData && socket.emit("lesson_audio_data", audioData)
+        );
+
         this.continueConversation = this.continueConversation.bind(this);
 
         this.socket.on("lesson_message_x", this.continueConversation);
@@ -43,34 +49,38 @@ class XLesson {
     }
 
     async continueConversation({ message, first }) {
-        let valid, reason;
-        if (!first) {
-            ({ valid, reason } = await checkUserMessageGuidelines(
-                this.socket,
-                message
-            ));
-        }
+        try {
+            let valid, reason;
+            if (!first) {
+                ({ valid, reason } = await checkUserMessageGuidelines(
+                    this.socket,
+                    message
+                ));
+            }
 
-        if (valid || first)
-            this.chat
-                .generateResponse(message)
+            if (valid || first)
+                this.chat
+                    .generateResponse(message)
 
-                .then(async response => {
-                    const { learningObjectiveNumber, finished } =
-                        await this.chat.getData(dataPrompt);
+                    .then(async response => {
+                        const { learningObjectiveNumber, finished } =
+                            await this.chat.getData(dataPrompt);
 
-                    this.socket.emit("lesson_response_data", {
-                        learningObjectiveNumber: first
-                            ? -1
-                            : learningObjectiveNumber,
-                        response,
-                    });
+                        this.socket.emit("lesson_response_data", {
+                            learningObjectiveNumber: first
+                                ? -1
+                                : learningObjectiveNumber,
+                            response,
+                        });
 
-                    if (finished) this.socket.emit("lesson_finished", true);
-                })
-                .catch(err => console.log(err));
-        else {
-            this.socket.emit("lesson_error", reason);
+                        if (finished) this.socket.emit("lesson_finished", true);
+                    })
+                    .catch(err => console.log(err));
+            else {
+                this.socket.emit("lesson_error", reason);
+            }
+        } catch (error) {
+            console.log(error);
         }
     }
 }
