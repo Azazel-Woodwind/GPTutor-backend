@@ -76,11 +76,12 @@ const generateLessonInformation = lesson => {
 const lessonSystemPromptIntroduction = `Below is data in JSON format containing data about your student and the lesson you will be teaching.`;
 const lessonSystemPromptDescription = `You will teach the lesson according to the learning objectives provided, starting from the first objective. Each learning objective contains image descriptions for the images that will be shown while you teach that objective. DO NOT specify actions, such as *show image* or [image shown]. Keep the lesson engaging and try to link examples with the student's interests listed above to keep them interested. Try to keep prompts relatively short by breaking up the learning objectives into multiple parts to keep the student engaged. Check the student's understanding after each response by giving the student a question to solve on the learning objective. Ask one question at a time, and do not just give the answer to the student, but try to guide them there themselves. NEVER continue to the next learning objective unless the student has confirmed that they have understood the current learning objective. Once all learning objectives have been covered, ask the student if they have any questions. If the student has no more questions, end the lesson by asking the student if they are happy to end the lesson. If the student is happy to end the lesson, wish the student goodbye and end the lesson. If the student is not happy to end the lesson, continue teaching the lesson.`;
 const lessonSystemPromptEnding = `You MUST respond as if you are X, not as an ai. Begin the lesson by greeting the student, briefly introducing the lesson and asking the student if they are ready to start the lesson and ending your response. DO NOT begin teaching the lesson until the student says they are ready to start the lesson.`;
-const getJsonDataPrompt = `
-Return ONLY a JSON object with two keys, 'learningObjectiveNumber' and 'finished'. 
-If you do not have information you must ALWAYS assume learningObjectiveNumber is -1 and finished is false
-'learningObjectiveNumber' should contain the learning objective number for the learning objective number that you were talking about last as an integer or -1 if the student has not confirmed that they are ready to start the lesson. 
-'finished' should contain a boolean which is true if your response is the final message of the lesson and the student has confirmed that they are happy to end the lesson, and false if not.
+const getJsonDataPrompt = lesson => `
+    ${generateLessonInformation(lesson)}    
+    Return ONLY a JSON object with two keys, 'learningObjectiveNumber' and 'finished'. 
+    If you do not have information you must ALWAYS assume learningObjectiveNumber is -1 and finished is false
+    'learningObjectiveNumber' should contain the learning objective number for the learning objective number that you were talking about last as an integer or -1 if the student has not confirmed that they are ready to start the lesson. 
+    'finished' should contain a boolean which is true if your response is the final message of the lesson and the student has confirmed that they are happy to end the lesson, and false if not.
 `;
 
 const generateLessonSystemPrompt = (user, lesson) => `
@@ -110,9 +111,9 @@ const generateConversationContext = context => {
 };
 
 const getUserIntentionData = `
-Always respond with ONLY a JSON object with the following keys.
+You must respond with ONLY a JSON object with the following keys.
 'navigateTo' should either contain the route of a page the user has communicated wishing to navigate to in their last message or false.
-If you do not have access to or none of this applies make sure to ALWAYS return false
+If you do not have access to or none of this applies, you must return false
 `;
 
 const conversationInstructions = `

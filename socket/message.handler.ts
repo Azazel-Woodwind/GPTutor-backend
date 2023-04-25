@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { CheckUserGuidelines } from "../lib/prompts.utils";
 import ChatGPTConversation from "../lib/ChatGPTConversation";
 
@@ -7,8 +9,6 @@ export async function checkUserMessageGuidelines(socket, message) {
         heavyPrompt: `Student message: "${message}"`,
     });
 
-    console.log("checkUserMessageGuidelines");
-    console.log(`Student message: ${message}`);
     try {
         const guidelines = await chat.getData(CheckUserGuidelines);
         return guidelines;

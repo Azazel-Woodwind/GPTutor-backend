@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import supabase from "../config/supa";
 import ChatGPTConversation from "./ChatGPTConversation";
 
@@ -22,7 +24,7 @@ export async function incrementUsage(id, delta) {
 
 export function findJsonInString(content) {
     let dataString = content;
-    console.log("Json data:", dataString, "end of json data");
+    // console.log("Json data:", dataString, "end of json data");
 
     let startingIndex = 0;
     let endingIndex = dataString.length;
@@ -51,6 +53,28 @@ export function findJsonInString(content) {
         isValidJson = false;
     }
     if (!isValidJson) return null;
+
+    return json;
+}
+
+export async function getJsonData(dataPrompt, chat, socket) {
+    const heavyPrompt = `
+    Here is a conversation between a ChatGPT AI and a human:
+
+    ${JSON.stringify(chat.chatHistory.slice(1))}
+
+    Your task is to return JSON data based on these instructions:
+    ${dataPrompt}
+    `;
+
+    console.log(dataPrompt);
+
+    const tempChat = new ChatGPTConversation({
+        socket,
+        heavyPrompt,
+    });
+
+    const json = await tempChat.getData();
 
     return json;
 }

@@ -10,8 +10,10 @@ const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 
 class ChatGPTConversation {
-    constructor({ heavyPrompt, chatHistory = [], socket, tokenUsage = true }) {
-        this.chatHistory = chatHistory;
+    constructor({ heavyPrompt, chatHistory, socket, tokenUsage = true }) {
+        this.chatHistory = chatHistory || [
+            { role: "system", content: heavyPrompt },
+        ];
         this.tokenUsage = tokenUsage;
         this.heavyPrompt = heavyPrompt;
         this.messageEmitter = new EventEmitter();
@@ -19,9 +21,9 @@ class ChatGPTConversation {
         socket.currentUsage = tokenizer.encode(heavyPrompt).text.length;
     }
 
-    async getData(dataPrompt) {
+    async getData(dataPrompt?) {
         await this.checkExceededTokenQuota();
-
+        console.log("GETTING JSON DATA");
         // tries to get json data a maximum of 5 times
         let count = 0,
             json;
@@ -30,7 +32,9 @@ class ChatGPTConversation {
                 system: true,
                 silent: true,
             });
+            console.log("Json data:", content, "end of json data");
             json = findJsonInString(content);
+
             count++;
         } while (!json && count < 5);
 
@@ -87,20 +91,21 @@ class ChatGPTConversation {
                 content: "",
             };
 
-            const systemMessage = { role: "system", content: this.heavyPrompt };
-            const userMessage = {
-                role: opts?.system ? "system" : "user",
-                content: message,
-            };
-            var messages = message
-                ? [systemMessage, ...this.chatHistory, userMessage]
-                : [systemMessage, ...this.chatHistory];
-
             const body = {
                 model: "gpt-3.5-turbo",
-                messages,
+                messages: message
+                    ? [
+                          ...this.chatHistory,
+                          {
+                              role: opts.system ? "system" : "user",
+                              content: message,
+                          },
+                      ]
+                    : this.chatHistory,
                 stream: true,
+                temperature: 1,
             };
+            console.log("body:", body.messages);
 
             const headers = {
                 "Content-Type": "application/json",
@@ -109,13 +114,16 @@ class ChatGPTConversation {
 
             const url = "https://api.openai.com/v1/chat/completions";
 
+            this.abortController = new AbortController();
+
             let currentSentence = "";
 
+            let counter = 0;
             fetchSSE(url, {
                 method: "POST",
                 headers,
                 body: JSON.stringify(body),
-                // signal: abortSignal,
+                signal: this.abortController.signal,
                 onMessage: async data => {
                     // console.log("data:", data);
                     if (data === "[DONE]") {
@@ -126,16 +134,6 @@ class ChatGPTConversation {
                                 this.socket.currentUsage
                             );
                             this.socket.currentUsage = 0;
-                        }
-
-                        if (currentSentence.length > 0) {
-                            const audio = await this.getAudioData(
-                                currentSentence
-                            );
-                            this.messageEmitter.emit("message", {
-                                text: currentSentence,
-                                audio,
-                            });
                         }
 
                         return resolve({
@@ -176,11 +174,15 @@ class ChatGPTConversation {
                                 if (
                                     delta.content.includes(".") ||
                                     delta.content.includes("?") ||
-                                    delta.content.includes("!")
+                                    delta.content.includes("!") ||
+                                    delta.content.includes("\n")
                                 ) {
                                     const temp = currentSentence;
                                     currentSentence = "";
-                                    this.getAudioData(temp);
+                                    this.messageEmitter.emit("generate_audio", {
+                                        text: temp,
+                                        order: counter++,
+                                    });
                                 }
                                 // console.log("delta.content:", delta.contents);
 
@@ -202,36 +204,6 @@ class ChatGPTConversation {
             }).catch(err => console.log("err:", err));
         });
     };
-
-    async getAudioData(text) {
-        const request = {
-            audioConfig: {
-                audioEncoding: "LINEAR16",
-                effectsProfileId: ["small-bluetooth-speaker-class-device"],
-                pitch: 0,
-                speakingRate: 1,
-            },
-            input: {
-                text,
-            },
-            voice: {
-                languageCode: "en-GB",
-                name: "en-GB-Neural2-D",
-            },
-        };
-
-        try {
-            console.log("CONVERTING TO SPEECH DATA:", text);
-
-            const [response] = await ttsClient.synthesizeSpeech(request);
-            // console.log("response:", response);
-            const base64 = response.audioContent.toString("base64");
-
-            this.messageEmitter.emit("audioData", base64);
-        } catch (error) {
-            console.log(error);
-        }
-    }
 }
 
 export default ChatGPTConversation;

@@ -19,6 +19,9 @@ export const XGuidelines = `
     Respond as X, not an AI language model.
 `;
 
+// const one = 1;
+// const exampleText = `the number ${one}`
+
 const XIntroduction = `You are a helpful tutor named "X". ${XGuidelines}`;
 const XTutorDescription = `You are an AI from XTutor, an AI tutoring app with the moto "Towards the future".`;
 
@@ -28,13 +31,13 @@ const siteIndex = `
     Lessons menu, route: "/lessons" - List of lessons, sortable by subject, education level, etc.
 `;
 
-function listImages(images) {
-    return images
-        .map((image, index) => {
-            return `Image #${index + 1}: ${image.description}`;
-        })
-        .join("\n");
-}
+// function listImages(images) {
+//     return images
+//         .map((image, index) => {
+//             return `Image #${index + 1}: ${image.description}`;
+//         })
+//         .join("\n");
+// }
 
 const generateUserInformation = user => {
     // console.log("STUDENT INFO:", JSON.stringify(user.user_metadata));
@@ -74,18 +77,20 @@ const generateLessonInformation = lesson => {
 const lessonSystemPromptIntroduction = `Below is JSON data about your student and the lesson.`;
 const lessonSystemPromptDescription = `Teach lesson according to learning objectives. Engage student with examples linked to their interests. Check understanding after each response with a question. Only proceed to the next learning objective after student confirms understanding. After all objectives, ask if the student has any questions. End lesson after student has no more questions and is happy to end the lesson.`;
 const lessonSystemPromptEnding = `Respond as X. Greet the student, introduce the lesson, and ask if they're ready to start. Don't begin teaching until they're ready.`;
-// const getJsonDataPrompt = `
-// Return JSON object with two keys: 'learningObjectiveNumber' and 'finished'.
-// Assume learningObjectiveNumber is -1 and finished is false if no information.
-// 'learningObjectiveNumber' is the last learning objective number discussed.
-// 'finished' is true if the lesson is done and the student is happy to end it.
-// `;
-const getJsonDataPrompt = `
-Return ONLY a JSON object with two keys, 'learningObjectiveNumber' and 'finished'. 
-If you do not have information you must ALWAYS assume learningObjectiveNumber is -1 and finished is false
-'learningObjectiveNumber' should contain the learning objective number for the learning objective number that you were talking about last as an integer or -1 if the student has not confirmed that they are ready to start the lesson. 
-'finished' should contain a boolean which is true if your response is the final message of the lesson and the student has confirmed that they are happy to end the lesson, and false if not.
+const getJsonDataPrompt = lesson => `
+${generateLessonInformation(lesson)} 
+You must respond with ONLY a JSON object with two keys: 'learningObjectiveNumber' and 'finished'.
+'learningObjectiveNumber' is the most recent learning objective number relevant to the above conversation or -1 before the student has confirmed they're ready to begin the lesson.
+'finished' is true if the lesson is done and the student is happy to end it.
+Assume learningObjectiveNumber is -1 and finished is false if no information.
 `;
+
+// const getJsonDataPrompt = `
+// Return ONLY a JSON object with two keys, 'learningObjectiveNumber' and 'finished'.
+// If you do not have information you must ALWAYS assume learningObjectiveNumber is -1 and finished is false
+// 'learningObjectiveNumber' should contain the learning objective number for the learning objective number that you were talking about last as an integer or -1 if the student has not confirmed that they are ready to start the lesson.
+// 'finished' should contain a boolean which is true if your response is the final message of the lesson and the student has confirmed that they are happy to end the lesson, and false if not.
+// `;
 
 const generateLessonSystemPrompt = (user, lesson) => `
     ${XIntroduction}
