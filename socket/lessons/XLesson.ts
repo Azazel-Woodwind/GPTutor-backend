@@ -34,27 +34,24 @@ class XLesson {
         const audioData = new Map();
 
         this.chat.messageEmitter.on("generate_audio", ({ text, order }) => {
-            text = text.trim();
-            if (text) {
-                getAudioData(text)
-                    .then(base64 => {
-                        console.log("CONVERTED TO SPEECH DATA:", text);
-                        if (order === nextSentenceNumber) {
-                            socket.emit("chat_audio_data", base64);
+            getAudioData(text)
+                .then(base64 => {
+                    console.log("CONVERTED TO SPEECH DATA:", text);
+                    if (order === nextSentenceNumber) {
+                        socket.emit("lesson_audio_data", base64);
+                        nextSentenceNumber++;
+                        while (audioData.has(nextSentenceNumber)) {
+                            socket.emit(
+                                "lesson_audio_data",
+                                audioData.get(nextSentenceNumber)
+                            );
                             nextSentenceNumber++;
-                            while (audioData.has(nextSentenceNumber)) {
-                                socket.emit(
-                                    "chat_audio_data",
-                                    audioData.get(nextSentenceNumber)
-                                );
-                                nextSentenceNumber++;
-                            }
-                        } else {
-                            audioData.set(order, base64);
                         }
-                    })
-                    .catch(err => console.log(err));
-            }
+                    } else {
+                        audioData.set(order, base64);
+                    }
+                })
+                .catch(err => console.log(err));
         });
 
         this.continueConversation = this.continueConversation.bind(this);
@@ -72,7 +69,6 @@ class XLesson {
             this.chat.messageEmitter.removeAllListeners();
         });
 
-        this.socket.emit("lesson_info", lesson);
         this.continueConversation({ first: true });
     }
 
@@ -89,7 +85,6 @@ class XLesson {
             if (valid || first)
                 this.chat
                     .generateResponse(message)
-
                     .then(async response => {
                         // const { learningObjectiveNumber, finished } =
                         //     await this.chat.getData(dataPrompt);

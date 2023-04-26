@@ -10,15 +10,18 @@ const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 
 class ChatGPTConversation {
-    constructor({ heavyPrompt, chatHistory, socket, tokenUsage = true }) {
+    constructor({ systemPrompt, chatHistory, socket, tokenUsage = true }) {
         this.chatHistory = chatHistory || [
-            { role: "system", content: heavyPrompt },
+            { role: "system", content: systemPrompt },
         ];
         this.tokenUsage = tokenUsage;
-        this.heavyPrompt = heavyPrompt;
+        this.systemPrompt = systemPrompt;
         this.messageEmitter = new EventEmitter();
         this.socket = socket;
-        socket.currentUsage = tokenizer.encode(heavyPrompt).text.length;
+        console.log("SYSTEM PROMPT:", systemPrompt);
+        socket.currentUsage = socket.currentUsage
+            ? socket.currentUsage + tokenizer.encode(systemPrompt).text.length
+            : tokenizer.encode(systemPrompt).text.length;
     }
 
     async getData(dataPrompt?) {
@@ -66,7 +69,7 @@ class ChatGPTConversation {
         }
     }
 
-    async generateResponse(message) {
+    async generateResponse(message, id, first) {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
@@ -74,6 +77,8 @@ class ChatGPTConversation {
         var response = await this.generateChatCompletion(undefined, {
             system: false,
             silent: false,
+            id,
+            first,
         });
 
         this.chatHistory.push(response);
@@ -105,7 +110,7 @@ class ChatGPTConversation {
                 stream: true,
                 temperature: 1,
             };
-            console.log("body:", body.messages);
+            // console.log("body:", body.messages);
 
             const headers = {
                 "Content-Type": "application/json",
@@ -177,12 +182,20 @@ class ChatGPTConversation {
                                     delta.content.includes("!") ||
                                     delta.content.includes("\n")
                                 ) {
-                                    const temp = currentSentence;
+                                    currentSentence = currentSentence.trim();
+                                    if (currentSentence) {
+                                        this.messageEmitter.emit(
+                                            "generate_audio",
+                                            {
+                                                text: currentSentence,
+                                                order: counter++,
+                                                id: opts.id,
+                                                first: opts.first,
+                                            }
+                                        );
+                                    }
+
                                     currentSentence = "";
-                                    this.messageEmitter.emit("generate_audio", {
-                                        text: temp,
-                                        order: counter++,
-                                    });
                                 }
                                 // console.log("delta.content:", delta.contents);
 

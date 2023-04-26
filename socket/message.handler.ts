@@ -6,20 +6,14 @@ import ChatGPTConversation from "../lib/ChatGPTConversation";
 export async function checkUserMessageGuidelines(socket, message) {
     const chat = new ChatGPTConversation({
         socket,
-        heavyPrompt: `Student message: "${message}"`,
+        systemPrompt: `Student message: "${message}"`,
     });
 
-    try {
-        const guidelines = await chat.getData(CheckUserGuidelines);
-        return guidelines;
-    } catch (error) {
-        console.log(error);
-        return Promise.reject(error);
+    const guidelines = await chat.getData(CheckUserGuidelines);
+    if (guidelines === false) {
+        return { valid: true, reason: "" };
     }
-
-    // console.log(guidelines);
-
-    // return chat.getData(CheckUserGuidelines);
+    return guidelines;
 }
 
 export default checkUserMessageGuidelines;
