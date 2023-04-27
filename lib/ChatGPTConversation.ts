@@ -18,7 +18,7 @@ class ChatGPTConversation {
         this.systemPrompt = systemPrompt;
         this.messageEmitter = new EventEmitter();
         this.socket = socket;
-        console.log("SYSTEM PROMPT:", systemPrompt);
+        // console.log("SYSTEM PROMPT:", systemPrompt);
         socket.currentUsage = socket.currentUsage
             ? socket.currentUsage + tokenizer.encode(systemPrompt).text.length
             : tokenizer.encode(systemPrompt).text.length;
@@ -34,6 +34,7 @@ class ChatGPTConversation {
             const { content } = await this.generateChatCompletion(dataPrompt, {
                 system: true,
                 silent: true,
+                temperature: 0,
             });
             console.log("Json data:", content, "end of json data");
             json = findJsonInString(content);
@@ -108,7 +109,7 @@ class ChatGPTConversation {
                       ]
                     : this.chatHistory,
                 stream: true,
-                temperature: 1,
+                temperature: opts.temperature || 0.7,
             };
             // console.log("body:", body.messages);
 

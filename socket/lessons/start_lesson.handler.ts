@@ -42,8 +42,7 @@ const start_lessonHandler = async (data, socket) => {
         console.log("DATA:", data);
 
         socket.emit("lesson_response_data", {
-            learningObjectiveNumber:
-                first || !data ? -1 : data.learningObjectiveNumber,
+            learningObjectiveNumber: !data ? -1 : data.learningObjectiveNumber,
             response,
         });
 

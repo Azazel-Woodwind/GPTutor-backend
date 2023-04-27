@@ -62,11 +62,12 @@ export function findJsonInString(content) {
 
 export async function getJsonData(dataPrompt, chat, socket) {
     const systemPrompt = `
-    Here is a conversation between a ChatGPT AI and a human:
+    Here is an interaction between a ChatGPT AI and a human:
 
     ${JSON.stringify(chat.chatHistory.slice(1))}
 
     Your task is to return JSON data based on these instructions:
+
     ${dataPrompt}
     `;
 
@@ -140,6 +141,9 @@ export async function XSetup(params) {
     socket.on(`${channel}_exit`, () => {
         chat.abortController && chat.abortController.abort();
         chat.messageEmitter.removeAllListeners();
+
+        socket.removeAllListeners(`${channel}_message_x`);
+        socket.removeAllListeners(`${channel}_exit`);
     });
 
     if (start) {

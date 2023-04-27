@@ -1,8 +1,8 @@
 // @ts-nocheck
 
 import XConversation from "./XConversation";
-import { conversation } from "../../lib/prompts.utils";
-import { XSetup } from "../../lib/XUtils";
+import { conversation } from "../../lib/GPT4prompts.utils";
+import { XSetup, getJsonData } from "../../lib/XUtils";
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
 
 const start_chatHandler = (data, socket) => {
@@ -21,12 +21,9 @@ const start_chatHandler = (data, socket) => {
             response,
         });
 
-        const data = await chat.getData(conversation.dataPrompt);
-        // const data = await getJsonData(
-        //     dataPrompt,
-        //     this.chat,
-        //     this.socket
-        // );
+        // const data = await chat.getData(conversation.dataPrompt);
+
+        const data = await getJsonData(conversation.dataPrompt, chat, socket);
         if (data.navigateTo) {
             socket.emit("navigate", data.navigateTo);
         }
