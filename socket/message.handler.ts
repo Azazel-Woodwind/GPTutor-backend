@@ -11,7 +11,7 @@ export async function checkUserMessageGuidelines(socket, message) {
     ${CheckUserGuidelines}
     `;
 
-    console.log("systemPrompt:", systemPrompt);
+    // console.log("systemPrompt:", systemPrompt);
 
     const chat = new ChatGPTConversation({
         socket,

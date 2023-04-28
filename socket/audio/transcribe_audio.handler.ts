@@ -2,8 +2,12 @@
 import FormData from "form-data";
 import axios from "axios";
 
-const transcribe_audioHandler = ({ file }, socket) => {
+const transcribe_audioHandler = (data, socket) => {
+    const file = data.file;
     console.log("Received audio");
+    if (data.final) {
+        console.log("RECEIVED FINAL AUDIO");
+    }
     // const file = data.file;
     const whisperApiEndpoint = `https://api.openai.com/v1/audio/transcriptions`;
     const whisperConfig = {
@@ -25,14 +29,18 @@ const transcribe_audioHandler = ({ file }, socket) => {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     };
 
-    console.log("BODY:", body);
+    // console.log("BODY:", body);
 
     axios
         .post(whisperApiEndpoint, body, {
             headers,
         })
         .then(response => {
-            socket.emit("transcribed_audio", response.data.text);
+            console.log(data.final);
+            socket.emit("transcribed_audio", {
+                transcription: response.data.text,
+                final: data.final,
+            });
         })
         .catch(error => {
             console.log("error:", error.response);
