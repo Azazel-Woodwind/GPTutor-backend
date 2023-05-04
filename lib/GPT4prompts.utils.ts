@@ -80,11 +80,11 @@ const generateLessonInformation = lesson => {
 
 const lessonSystemPromptIntroduction = `Below is JSON data about your student and the lesson.`;
 const lessonSystemPromptDescription = `Teach lesson according to learning objectives. Engage student with helpful examples linked to learning objectives. Check understanding after each response with a question. Only proceed to the next learning objective after student confirms understanding. After all objectives, ask if the student has any questions. End lesson only after student has no more questions and confirms that they are happy to end the lesson.`;
-const lessonSystemPromptEnding = `Greet the student, introduce the lesson, and ask if they're ready to start. Do not under any circumstance begin teaching until the student says they are ready.`;
+const lessonSystemPromptEnding = `Greet the student, introduce the lesson, and ask if they're ready to start. Do not under any circumstance respond with what the student would say. Respond as if you are the tutor, not the student`;
 const getJsonDataPrompt = lesson => `
 Here is information about the lesson that the AI is teaching to the student:
 
-${generateLessonInformation(lesson)} 
+${generateLessonInformation(lesson)}
 
 You must respond with ONLY a JSON object with two keys: 'learningObjectiveNumber' and 'finished'.
 'learningObjectiveNumber' is the number of the learning objective most recently discussed by the student or AI in the conversation history given.
