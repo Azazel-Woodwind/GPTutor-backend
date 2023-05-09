@@ -2,10 +2,14 @@
     "name": "x-tutor",
     "version": "1.0.0",
     "description": "",
-    "main": "server.js",
+    "private": true,
+    "engines": {
+        "node": ">=18"
+    },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node server.js",
+        "build": "tsc",
+        "start": "node dist/index.js",
         "dev": "nodemon index.ts"
     },
     "author": "",
@@ -21,11 +25,9 @@
         "express-formidable": "^1.2.0",
         "form-data": "^4.0.0",
         "gpt3-tokenizer": "^1.1.5",
-        "joi": "^17.8.4",
         "jsonwebtoken": "^9.0.0",
         "lib": "^5.0.1",
         "nanoid": "^4.0.2",
-        "next": "^13.2.4",
         "nodemon": "^2.0.22",
         "socket.io": "^4.6.1",
         "ts-node": "^10.9.1",

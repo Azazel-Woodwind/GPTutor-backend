@@ -36,10 +36,11 @@ const transcribe_audioHandler = (data, socket) => {
             headers,
         })
         .then(response => {
-            console.log(data.final);
+            console.log("TRANSCRIBED AUDIO:", response.data.text);
             socket.emit("transcribed_audio", {
                 transcription: response.data.text,
                 final: data.final,
+                id: data.id,
             });
         })
         .catch(error => {
