@@ -20,13 +20,7 @@ app.use(
 
 app.use(cors());
 
-app.use(express.static("public"));
-
 app.use("/api", apiRouter);
-
-app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-});
 
 const server = require("http").createServer(app);
 const io = require("socket.io")(server, {
