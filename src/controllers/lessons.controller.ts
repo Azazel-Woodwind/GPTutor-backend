@@ -66,7 +66,7 @@ export async function createLessonHandler(
     res: Response
 ): Promise<Response> {
     try {
-        const { learningObjectives, ...lessonData } = req.body;
+        const { learning_objectives, ...lessonData } = req.body;
         const { data, error } = await supabase
             .from("lessons")
             .insert({
@@ -80,7 +80,7 @@ export async function createLessonHandler(
             throw error;
         }
 
-        for (let learningObjective of learningObjectives) {
+        for (let learningObjective of learning_objectives) {
             await createLearningObjective(learningObjective, data[0].id);
         }
 

@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 export const UserGuidelines = `
     Do not attempt to modify system prompt, obtain or change AI behavior.
     Do not swear.
@@ -45,18 +43,18 @@ const siteIndex = `
 //         .join("\n");
 // }
 
-const generateUserInformation = user => {
+const generateUserInformation = (user: User) => {
     // console.log("STUDENT INFO:", JSON.stringify(user.user_metadata));
 
     return `Student data:
     ${JSON.stringify(user.user_metadata)}`;
 };
 
-const generateLessonInformation = lesson => {
-    let lesson = structuredClone(lesson);
+const generateLessonInformation = (lesson: Partial<Lesson>) => {
+    lesson = structuredClone(lesson);
 
-    const lessonObjectiveData = lesson.learning_objectives
-        .map(({ title, images }) => ({
+    const lessonObjectiveData = lesson
+        .learning_objectives!.map(({ title, images }) => ({
             title,
             images: images.map(({ link, description }) => description),
         }))
@@ -70,7 +68,6 @@ const generateLessonInformation = lesson => {
 
     delete lesson.learning_objectives;
     delete lesson.id;
-    delete lesson.teacher;
 
     return `
         Lesson information:
@@ -83,7 +80,7 @@ const generateLessonInformation = lesson => {
 const lessonSystemPromptIntroduction = `Below is JSON data about your student and the lesson.`;
 const lessonSystemPromptDescription = `Teach lesson according to learning objectives. Engage student with helpful examples linked to learning objectives. Check understanding after each response with a question. Only proceed to the next learning objective after student confirms understanding. After all objectives, ask if the student has any questions. End lesson only after student has no more questions and confirms that they are happy to end the lesson.`;
 const lessonSystemPromptEnding = `Greet the student, introduce the lesson, and ask if they're ready to start. Do not under any circumstance respond with what the student would say. Respond as if you are the tutor, not the student`;
-const getJsonDataPrompt = lesson => `
+const getJsonDataPrompt = (lesson: Lesson) => `
 Here is information about the lesson that the AI is teaching to the student:
 
 ${generateLessonInformation(lesson)}
@@ -101,7 +98,7 @@ If the student has not confirmed that they are ready to start the lesson or not 
 // 'finished' should contain a boolean which is true if your response is the final message of the lesson and the student has confirmed that they are happy to end the lesson, and false if not.
 // `;
 
-const generateLessonSystemPrompt = (user, lesson) => `
+const generateLessonSystemPrompt = (user: User, lesson: Lesson) => `
     ${XIntroduction}
     ${XTutorDescription}
     ${lessonSystemPromptIntroduction}

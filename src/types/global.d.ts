@@ -23,6 +23,7 @@ declare type User = {
     usage_plan: string;
     max_daily_tokens: number;
     daily_token_usage: number;
+    user_metadata: any;
 };
 
 declare type Message = {
@@ -54,8 +55,8 @@ declare type Lesson = {
     title: string;
     caption: string;
     subject: Subject;
-    educationLevel: EducationLevel;
-    learningObjectives: LearningObjective[];
+    education_level: EducationLevel;
+    learning_objectives: LearningObjective[];
 };
 
 declare type ChatEntry = {

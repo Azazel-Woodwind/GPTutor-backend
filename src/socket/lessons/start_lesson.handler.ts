@@ -22,10 +22,8 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
 
     // console.log("Current lesson:", current_lesson);
 
-    const current_user = socket.user;
-
     const chat = new ChatGPTConversation({
-        systemPrompt: lesson.systemPrompt(current_user, current_lesson),
+        systemPrompt: lesson.systemPrompt(socket.user!, current_lesson),
         socket,
     });
 
