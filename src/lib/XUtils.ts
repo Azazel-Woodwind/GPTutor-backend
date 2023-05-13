@@ -15,7 +15,7 @@ export async function exceededTokenQuota(id: string, limit: number) {
     return user.daily_token_usage >= limit;
 }
 
-export async function incrementUsage(id: string, delta: string) {
+export async function incrementUsage(id: string, delta: number) {
     const { error } = await supabase.rpc("increment_usage", {
         user_id: id,
         delta,

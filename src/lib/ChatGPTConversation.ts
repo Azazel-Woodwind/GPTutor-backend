@@ -66,7 +66,7 @@ class ChatGPTConversation {
     async checkExceededTokenQuota() {
         const exceeded = await exceededTokenQuota(
             this.socket.user!.id,
-            this.socket.user!.max_daily_tokens
+            this.socket.user!.usage_plans!.max_daily_tokens
         );
 
         if (this.tokenUsage && exceeded) {
@@ -155,7 +155,7 @@ class ChatGPTConversation {
                         if (this.tokenUsage) {
                             await incrementUsage(
                                 this.socket.user!.id,
-                                this.socket.currentUsage!.toString()
+                                this.socket.currentUsage!
                             );
                             this.socket.currentUsage = 0;
                         }

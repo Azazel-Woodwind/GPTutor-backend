@@ -2,6 +2,7 @@ import supabase from "../../config/supa";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { Socket } from "socket.io";
+import { Database } from "../../types/supabase";
 dotenv.config();
 
 const handleAuthenticate = async (socket: Socket, next: any) => {
@@ -29,7 +30,7 @@ const handleAuthenticate = async (socket: Socket, next: any) => {
 
         const { data: user_data, error: user_error } = await supabase
             .from("users")
-            .select("*, usage_plans:usage_plan (max_daily_tokens)")
+            .select("*, usage_plans (max_daily_tokens)")
             .eq("id", userID)
             .single();
 
@@ -42,13 +43,13 @@ const handleAuthenticate = async (socket: Socket, next: any) => {
         }
 
         // console.log("user:", user);
-
+        const { usage_plans, ...rest } = user_data;
         socket.user = {
             ...user,
-            ...user_data,
-            ...user_data.usage_plans,
-            usage_plans: undefined,
-        };
+            ...rest,
+            usage_plans: usage_plans as { max_daily_tokens: number },
+        } as User;
+
         socket.emit("authenticated", true);
         // console.log(`Authentication successful with user: ${user.email}`);
         next();

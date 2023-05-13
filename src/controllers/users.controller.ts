@@ -22,7 +22,7 @@ export async function getUsersHandler(
 }
 
 export async function updateUserByIdHandler(
-    req: Request<{ id: string }, {}, User>,
+    req: Request<{ id: string }, {}, Partial<User>>,
     res: Response
 ): Promise<Response> {
     try {
@@ -69,17 +69,19 @@ export async function updateUserByIdHandler(
             throw error3;
         }
 
-        const { data: users_on_subjects, error: error4 } = await supabase
-            .from("users_on_subjects")
-            .insert(
-                subjects.map(subject_name => ({
-                    user_id: id,
-                    subject_name,
-                }))
-            );
+        if (subjects?.length) {
+            const { data: users_on_subjects, error: error4 } = await supabase
+                .from("users_on_subjects")
+                .insert(
+                    subjects.map(subject_name => ({
+                        user_id: id!,
+                        subject_name,
+                    }))
+                );
 
-        if (error4) {
-            throw error4;
+            if (error4) {
+                throw error4;
+            }
         }
 
         return res.status(200).json(user);

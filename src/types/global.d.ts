@@ -14,14 +14,14 @@ enum Subject {
 declare type User = {
     id: string;
     email: string;
-    password: string;
+    password?: string;
     first_name: string;
     last_name: string;
     education_level: EducationLevel;
-    subjects: Subject[];
+    subjects?: Subject[];
     access_level: number;
     usage_plan: string;
-    max_daily_tokens: number;
+    usage_plans: { max_daily_tokens: number };
     daily_token_usage: number;
     user_metadata: any;
 };

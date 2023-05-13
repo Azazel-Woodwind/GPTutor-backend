@@ -24,8 +24,8 @@ const handleConnection = async (socket: Socket) => {
         socket.on("disconnect", async reason => {
             console.log("Socket disconnected.", reason);
             const { data, error } = await supabase.rpc("increment_usage", {
-                id: socket.user?.id,
-                delta: socket.currentUsage,
+                user_id: socket.user?.id!,
+                delta: socket.currentUsage!,
             });
         });
     } catch (err) {
