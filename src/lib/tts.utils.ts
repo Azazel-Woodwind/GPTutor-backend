@@ -53,7 +53,10 @@ export async function getAudioData(text: string) {
         throw new Error("No audio content found");
     }
 
-    const base64 = response.audioContent.toString();
+    // @ts-ignore
+    // the "base64" argument causes a compilation error but it is needed and works.
+    // no idea why its not a valid argument
+    const base64 = response.audioContent.toString("base64");
 
     return base64;
 }

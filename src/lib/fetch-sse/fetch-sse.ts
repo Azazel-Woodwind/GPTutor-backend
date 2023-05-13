@@ -12,7 +12,9 @@ export async function fetchSSE(
     fetch: types.FetchFn = globalFetch
 ) {
     const { onMessage, ...fetchOptions } = options;
+    // console.log(fetch)
     const res = await fetch(url, fetchOptions);
+
     if (!res.ok) {
         let reason: string;
 

@@ -46,7 +46,7 @@ declare type Image = {
 
 declare type LearningObjective = {
     title: string;
-    description: string;
+    description: string | null;
     images: Image[];
 };
 

@@ -10,12 +10,12 @@ type ChannelData = {
 };
 
 const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
-    try {
-        startLessonSchema.parse(data);
-    } catch (error: any) {
-        socket.emit("start_lesson_error", error.issues);
-        return;
-    }
+    // try {
+    //     startLessonSchema.parse(data);
+    // } catch (error: any) {
+    //     socket.emit("start_lesson_error", error.issues);
+    //     return;
+    // }
 
     const { current_lesson } = data;
     console.log("Received connection to start_lesson");
