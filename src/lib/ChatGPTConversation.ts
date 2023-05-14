@@ -15,6 +15,11 @@ interface ConstructorParams {
     tokenUsage?: boolean;
 }
 
+const defaultOps = {
+    system: false,
+    silent: false,
+};
+
 class ChatGPTConversation {
     tokenUsage: boolean;
     messageEmitter: EventEmitter;
@@ -86,16 +91,20 @@ class ChatGPTConversation {
         }
     }
 
-    async generateResponse(message?: string, id?: string, first?: boolean) {
+    async generateResponse({
+        message,
+        ...opts
+    }: {
+        message?: string;
+        [key: string]: any;
+    }) {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
 
         const response = await this.generateChatCompletion(undefined, {
-            system: false,
-            silent: false,
-            id,
-            first,
+            ...defaultOps,
+            ...opts,
         });
 
         this.chatHistory.push(response);
@@ -144,6 +153,7 @@ class ChatGPTConversation {
             let currentSentence = "";
 
             let counter = 0;
+            // console.log("OPTS:", opts);
             fetchSSE(url, {
                 method: "POST",
                 headers,

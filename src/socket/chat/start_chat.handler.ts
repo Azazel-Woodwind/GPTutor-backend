@@ -20,7 +20,11 @@ const start_chatHandler = (data: undefined, socket: Socket) => {
 
         // const data = await chat.getData(conversation.dataPrompt);
 
-        const data = await getJsonData(conversation.dataPrompt, chat, socket);
+        const data = await getJsonData(
+            conversation.dataPrompt(chat.chatHistory.slice(1)),
+            chat,
+            socket
+        );
         if (data.navigateTo) {
             socket.emit("navigate", data.navigateTo);
         }

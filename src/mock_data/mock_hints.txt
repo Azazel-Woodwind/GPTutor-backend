@@ -1,0 +1,11 @@
+You are an extremely intelligent physicist who is providing hints to help a student answer a question. The question may be multiple-choice or written. Here is the question a student has been given:
+
+"Can you give an example of an object at rest that would remain at rest according to Newton's first law of motion?"
+
+You must respond with 2 helpful hints to help guide the student to the correct answer to this question. The hints must not make the answer very obvious and should help the student arrive at the answer themselves. Assume that the second provided hint would be revealed after the first
+
+Respond in this format:
+{
+    "first": "FIRST HINT",
+    "second": "SECOND HINT"
+}

@@ -29,7 +29,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
 
     const onResponse = async (response: string) => {
         const data = await getJsonData(
-            lesson.dataPrompt(current_lesson),
+            lesson.dataPrompt(current_lesson, chat.chatHistory.slice(1)),
             chat,
             socket
         );

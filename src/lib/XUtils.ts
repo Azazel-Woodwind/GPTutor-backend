@@ -58,26 +58,35 @@ export function findJsonInString(content: string) {
     return json;
 }
 
+export function formatChat(chat: Message[]): string {
+    let chatString = "\n";
+    chat.forEach(message => {
+        if (message.role === "assistant") {
+            chatString += `Teacher: ${message.content}\n`;
+        } else {
+            chatString += `Student: ${message.content}\n`;
+        }
+    });
+    return chatString;
+}
+
 export async function getJsonData(
     dataPrompt: string,
     chat: ChatGPTConversation,
     socket: Socket
 ) {
-    const systemPrompt = `
-    Here is an interaction between a ChatGPT AI and a human:
-
-    ${JSON.stringify(chat.chatHistory.slice(1))}
-
-    Your task is to return JSON data based on these instructions:
-
-    ${dataPrompt}
-    `;
+    //     const systemPrompt = `
+    // Here is an conversation between a teacher and a human:
+    // ${formatChat(chat.chatHistory.slice(1))}
+    // Your task is to return JSON data based on these instructions:
+    // ${dataPrompt}
+    // `;
 
     // console.log(dataPrompt);
 
     const tempChat = new ChatGPTConversation({
         socket,
-        systemPrompt,
+        systemPrompt: dataPrompt,
     });
 
     const json = await tempChat.getData();
@@ -203,11 +212,11 @@ export async function continueConversation({
         }
 
         if (valid || first) {
-            const response = await chat.generateResponse(
+            const response = await chat.generateResponse({
                 message,
-                currentResponseId,
-                first
-            );
+                id: currentResponseId,
+                first,
+            });
             onResponse && onResponse(response, first);
         } else {
             socket.emit(

@@ -57,6 +57,10 @@ declare type Lesson = {
     subject: Subject;
     education_level: EducationLevel;
     learning_objectives: LearningObjective[];
+    is_published: boolean;
+    author_id: string;
+    is_verified: boolean;
+    created_at: string;
 };
 
 declare type ChatEntry = {

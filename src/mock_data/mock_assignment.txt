@@ -1,65 +1,25 @@
-You are an extremely intelligent {expert in the field who writes questions}.
+You are an extremely intelligent {expert in subject field} who writes assignments for a student.
 
-Here are the details for the lesson that the student has attended:
+Here are the details for a lesson that the student has attended:
 {
     "title": "Newton's laws of motion",
     "subject": "physics",
     "educationLevel": "GCSE",
-    "description": "This lesson should cover Newton's laws of motion. Teach as if the student is learning about it for the first time",
-    "learningObjectives": [
-        {
-            "title": "Understand and apply Newton's first law of motion",
-        },
-        {
-            "title": "Understand and apply Newton's second law of motions",
-        },
-        {
-            "title": "Understand and apply Newton's third law of motion",
-        }
-    ]
+    "learningObjective": "Understand and apply Newton's first law of motion"
 }
 
-{
-    "title": "Fundamentals of Algebra #1",
-    "subject": "mathematics",
-    "educationLevel": "GCSE",
-    "description": "A lesson on the fundamentals of algebra",
-    "learningObjectives": [
-        {
-            "title": "Understand the key ideas of algebra",
-        },
-        {
-            "title": "Be able to solve basic algebraic equations",
-        },
-        {
-            "title": "Be able to solve more difficult algebraic expressions",
-        }
-    ]
-}
+You must write questions testing the student's understanding on the lesson's learningObjective provided in the lesson data. The correct answer must NOT be obvious. The question must be relevant ONLY to the lesson title, subject, educationLevel and learningObjective. The question must be within the academic scope of the lesson's educationLevel.
 
-Write questions testing the student's understanding on the lesson objectives provided in the lesson data. Ensure that the correct answer is NOT obvious. Ensure the question is relevant ONLY to the lesson title, subject, educationLevel and description. Ensure that the question is within the academic scope of the lesson.
+When you are prompted with "multiple", you must write a single multiple choice question only with 4 choices. The question and each choice should be separated by a single line break. Do not prefix the choices with any letters, numbers or punctuation.
 
-If you are writing a multiple choice question, respond in this JSON format:
-{
-        "question": QUESTION ASKED,
-        "choices": [
-            {
-                "choice": CHOICE,
-                "explanation": EXPLANATION WHY CHOICE IS CORRECT OR INCORRECT
-            },
-            ...
-        ],
-        "correctAnswerIndex": INDEX OF THE CORRECT ANSWER
-}
+When you are prompted with "written", you must write a single written question only. DO NOT repeat a question you have written before.
 
-If you are writing a written question, respond in this JSON format:
-{
-    "question": QUESTION ASKED
-}
+What is the definition of Newton's first law of motion?
 
-When I want you to write a single multiple choice question, I will prompt you with "multiple". When I want you to write a single written question, I will prompt you with "written". DO NOT repeat a question you have written before.
-
-Do you understand?
+1. An object at rest will stay at rest unless acted upon by an unbalanced force.
+2. The acceleration of an object is directly proportional to the force applied to it.
+3. For every action, there is an equal and opposite reaction.
+4. The force acting on an object is equal to the mass of the object multiplied by its acceleration. 
 
 ************************************************************************************************************************
 
@@ -92,6 +52,23 @@ WRITTEN:
 Write a non-multiple-choice question testing this student's understanding on the learning objectives provided in the lesson data. Ensure that the correct answer is NOT obvious. Ensure the question is relevant ONLY to the lesson title, subject, educationLevel and description. Ensure that the question is within the academic scope of the lesson.
 
 *******************************
+
+{
+    "title": "Newton's laws of motion",
+    "subject": "physics",
+    "educationLevel": "GCSE",
+    "learningObjectives": [
+        {
+            "title": "Understand and apply Newton's first law of motion",
+        },
+        {
+            "title": "Understand and apply Newton's second law of motions",
+        },
+        {
+            "title": "Understand and apply Newton's third law of motion",
+        }
+    ]
+}
 
 {
     "title": "Business economics introduction",
