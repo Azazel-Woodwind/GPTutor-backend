@@ -58,9 +58,9 @@ const generateLessonInformation = (lesson: Partial<Lesson>) => {
     lesson = structuredClone(lesson);
 
     const lessonObjectiveData = lesson
-        .learning_objectives!.map(({ title, images }) => ({
-            title,
-            // images: images.map(({ link, description }) => description),
+        .learning_objectives!.map(({ description, image_description }) => ({
+            description,
+            image_description,
         }))
         .map(
             (objective, index) =>
@@ -77,6 +77,7 @@ const generateLessonInformation = (lesson: Partial<Lesson>) => {
     delete lesson.caption;
     delete lesson.created_at;
     delete lesson.id;
+    delete lesson.exam_boards;
 
     return `
 Lesson information:
@@ -87,7 +88,7 @@ ${lessonObjectiveData}
 };
 
 const lessonSystemPromptIntroduction = `Below is JSON data about your student and the lesson.`;
-const lessonSystemPromptDescription = `Teach lesson according to learning objectives. Engage student with helpful examples linked to learning objectives. Check understanding after each response with a question. Only proceed to the next learning objective after student confirms understanding. After all objectives, ask if the student has any questions and if not, wish goodbye to the student in a friendly manner. End lesson only after student has no more questions and confirms that they are happy to end the lesson.`;
+const lessonSystemPromptDescription = `Teach lesson according to provided learning objectives. Each learning objective may include a description of an image which will be displayed while you teach. Engage student with helpful examples linked to learning objectives. Check understanding after each response with a question. Only proceed to the next learning objective after student confirms understanding. Transition between each learning objective smoothly without directly referencing them. After all objectives, ask if the student has any questions and if not, wish goodbye to the student in a friendly manner. End lesson only after student has no more questions and confirms that they are happy to end the lesson.`;
 const lessonSystemPromptEnding = `Greet the student, introduce the lesson, and ask if they're ready to start. Do not under any circumstance respond with what the student would say. Respond as if you are the tutor, not the student`;
 const getJsonDataPrompt = (lesson: Lesson, history: Message[]) => `
 Here is information about a lesson that a teacher is teaching to the student:
@@ -139,7 +140,7 @@ ${JSON.stringify(
         subject: lesson.subject,
         educationLevel: lesson.education_level,
         learningObjective:
-            lesson.learning_objectives![learningObjectiveIndex].title,
+            lesson.learning_objectives![learningObjectiveIndex].description,
     },
     null,
     2

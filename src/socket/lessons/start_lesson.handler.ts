@@ -26,6 +26,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         systemPrompt: lesson.systemPrompt(socket.user!, current_lesson),
         socket,
     });
+    console.log(chat.systemPrompt);
 
     const onResponse = async (response: string) => {
         const data = await getJsonData(

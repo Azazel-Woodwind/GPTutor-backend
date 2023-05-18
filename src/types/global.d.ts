@@ -39,15 +39,10 @@ declare type WaitingListMember = {
     subjects: Subject[];
 };
 
-declare type Image = {
-    link: string;
-    description: string;
-};
-
 declare type LearningObjective = {
-    title: string;
     description: string | null;
-    images: Image[];
+    image_link: string | null;
+    image_description: string | null;
 };
 
 declare type Lesson = {
@@ -61,6 +56,7 @@ declare type Lesson = {
     author_id: string;
     is_verified: boolean;
     created_at: string;
+    exam_boards: string[];
 };
 
 declare type ChatEntry = {

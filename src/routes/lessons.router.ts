@@ -7,7 +7,6 @@ import requireAccessLevel, {
 } from "../middleware/requireAccessLevel";
 import {
     getLessonsHandler,
-    createLessonHandler,
     deleteLessonHandler,
     updateLessonHandler,
 } from "../controllers/lessons.controller";
@@ -18,8 +17,7 @@ const router = Router();
 
 router
     .route("/")
-    .get(requireAccessLevel(ADMIN_ACCESS_LEVEL), getLessonsHandler)
-    .post(requireAccessLevel(STUDENT_ACCESS_LEVEL), createLessonHandler);
+    .get(requireAccessLevel(ADMIN_ACCESS_LEVEL), getLessonsHandler);
 
 router
     .route("/:id")
