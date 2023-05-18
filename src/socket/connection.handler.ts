@@ -3,6 +3,7 @@ import startLessonHandler from "./lessons/start_lesson.handler";
 import startChatHandler from "./chat/start_chat.handler";
 import supabase from "../config/supa";
 import { Socket } from "socket.io";
+import start_quiz_handler from "./quiz/start_quiz_handler";
 
 type DataHandler = (data: any, socket: Socket) => void;
 
@@ -19,6 +20,8 @@ const handleConnection = async (socket: Socket) => {
         socket.on("start_chat", route(startChatHandler));
         // Lessons API
         socket.on("start_lesson", route(startLessonHandler));
+        // Quiz API
+        socket.on("start_quiz", route(start_quiz_handler));
 
         // On disconnect
         socket.on("disconnect", async reason => {

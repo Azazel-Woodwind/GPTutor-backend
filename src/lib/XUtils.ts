@@ -1,6 +1,7 @@
 import supabase from "../config/supa";
 import checkUserMessageGuidelines from "../socket/message.handler";
 import ChatGPTConversation from "./ChatGPTConversation";
+import OrderMaintaier from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
 import { Socket } from "socket.io";
 
@@ -129,41 +130,53 @@ export async function XSetup(params: XSetupParams) {
         message => message && socket.emit(`${channel}_response_stream`, message)
     );
 
-    let nextSentenceNumber = 0;
-    const audioData = new Map();
+    // let nextSentenceNumber = 0;
+    // const audioData = new Map();
     let currentResponseId: undefined | string = undefined;
 
+    const orderMaintainer = new OrderMaintaier({
+        callback: (data: any) => {
+            socket.emit(`${channel}_audio_data`, data);
+        },
+    });
     chat.messageEmitter.on("generate_audio", ({ text, order, id, first }) => {
         getAudioData(text)
             .then(base64 => {
                 if (!first && id !== currentResponseId) return;
 
                 console.log("CONVERTED TO SPEECH DATA:", text);
-                if (order === nextSentenceNumber) {
-                    socket.emit(`${channel}_audio_data`, {
+                orderMaintainer.addData(
+                    {
                         audio: base64,
                         first,
                         id,
-                    });
-                    nextSentenceNumber++;
-                    while (audioData.has(nextSentenceNumber)) {
-                        socket.emit(`${channel}_audio_data`, {
-                            audio: audioData.get(nextSentenceNumber),
-                            first,
-                            id,
-                        });
-                        nextSentenceNumber++;
-                    }
-                } else {
-                    audioData.set(order, base64);
-                }
+                    },
+                    order
+                );
+                // if (order === nextSentenceNumber) {
+                //     socket.emit(`${channel}_audio_data`, {
+                //         audio: base64,
+                //         first,
+                //         id,
+                //     });
+                //     nextSentenceNumber++;
+                //     while (audioData.has(nextSentenceNumber)) {
+                //         socket.emit(`${channel}_audio_data`, {
+                //             audio: audioData.get(nextSentenceNumber),
+                //             first,
+                //             id,
+                //         });
+                //         nextSentenceNumber++;
+                //     }
+                // } else {
+                //     audioData.set(order, base64);
+                // }
             })
             .catch(err => console.log(err));
     });
 
     socket.on(`${channel}_message_x`, ({ message, context, id }) => {
-        nextSentenceNumber = 0;
-        audioData.clear();
+        orderMaintainer.reset();
         currentResponseId = id;
 
         console.log("received message: ", message);
@@ -177,8 +190,7 @@ export async function XSetup(params: XSetupParams) {
     });
 
     socket.on(`${channel}_exit`, () => {
-        chat.abortController && chat.abortController.abort();
-        chat.messageEmitter.removeAllListeners();
+        chat.cleanUp();
 
         socket.removeAllListeners(`${channel}_message_x`);
         socket.removeAllListeners(`${channel}_exit`);

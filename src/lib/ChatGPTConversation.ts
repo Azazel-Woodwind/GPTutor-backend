@@ -9,7 +9,7 @@ import { Socket } from "socket.io";
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 
 interface ConstructorParams {
-    systemPrompt: string;
+    systemPrompt?: string;
     chatHistory?: Message[];
     socket: any;
     tokenUsage?: boolean;
@@ -24,7 +24,7 @@ class ChatGPTConversation {
     tokenUsage: boolean;
     messageEmitter: EventEmitter;
     socket: Socket;
-    systemPrompt: string;
+    systemPrompt: string | undefined;
     chatHistory: Message[];
     abortController: AbortController | undefined;
 
@@ -34,16 +34,32 @@ class ChatGPTConversation {
         socket,
         tokenUsage = true,
     }: ConstructorParams) {
-        this.chatHistory = chatHistory || [
-            { role: "system", content: systemPrompt },
-        ];
+        this.chatHistory =
+            chatHistory ||
+            (systemPrompt ? [{ role: "system", content: systemPrompt! }] : []);
         this.tokenUsage = tokenUsage;
         this.systemPrompt = systemPrompt;
         this.messageEmitter = new EventEmitter();
         this.socket = socket;
-        socket.currentUsage = socket.currentUsage
-            ? socket.currentUsage + tokenizer.encode(systemPrompt).text.length
-            : tokenizer.encode(systemPrompt).text.length;
+        if (systemPrompt)
+            socket.currentUsage = socket.currentUsage
+                ? socket.currentUsage +
+                  tokenizer.encode(systemPrompt).text.length
+                : tokenizer.encode(systemPrompt).text.length;
+    }
+
+    cleanUp() {
+        this.messageEmitter.removeAllListeners();
+        this.abortController?.abort();
+    }
+
+    reset(newSystemPrompt: string) {
+        this.chatHistory = [{ role: "system", content: newSystemPrompt }];
+        this.systemPrompt = newSystemPrompt;
+        this.socket.currentUsage = this.socket.currentUsage
+            ? this.socket.currentUsage +
+              tokenizer.encode(newSystemPrompt).text.length
+            : tokenizer.encode(newSystemPrompt).text.length;
     }
 
     async getData(dataPrompt?: string) {
@@ -116,6 +132,10 @@ class ChatGPTConversation {
         message: string | undefined,
         opts: any
     ): Promise<Message> => {
+        if (!this.systemPrompt) {
+            throw new Error("System prompt not set");
+        }
+
         if (message?.length && this.socket.currentUsage)
             this.socket.currentUsage += tokenizer.encode(message).text.length;
 
