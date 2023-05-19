@@ -43,6 +43,7 @@ declare type LearningObjective = {
     description: string | null;
     image_link: string | null;
     image_description: string | null;
+    number: number | null;
 };
 
 declare type Lesson = {
