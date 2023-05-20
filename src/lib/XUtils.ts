@@ -228,6 +228,7 @@ export async function continueConversation({
                 message,
                 id: currentResponseId,
                 first,
+                temperature: 0.7,
             });
             onResponse && onResponse(response, first);
         } else {

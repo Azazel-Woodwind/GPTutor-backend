@@ -4,7 +4,7 @@ import {
     generateFeedbackSystemPrompt,
     generateHintsSystemPrompt,
     generateQuizQuestionsSystemPrompt,
-} from "../../lib/GPT4prompts.utils";
+} from "../../prompts/quiz.prompts";
 import { getAudioData } from "../../lib/tts.utils";
 import OrderMaintaier from "../../lib/OrderMaintainer";
 

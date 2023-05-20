@@ -1,9 +1,9 @@
 import supabase from "../../config/supa";
 import { XSetup, getJsonData } from "../../lib/XUtils";
 import startLessonSchema from "../schema/start_lesson.schema";
-import { lesson } from "../../lib/GPT4prompts.utils";
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
+import { lesson } from "../../prompts/lessons.prompts";
 
 type ChannelData = {
     current_lesson: Lesson;

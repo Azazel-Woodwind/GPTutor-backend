@@ -1,7 +1,7 @@
-import { conversation } from "../../lib/GPT4prompts.utils";
 import { XSetup, getJsonData } from "../../lib/XUtils";
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
+import { conversation } from "../../prompts/conversation.prompts";
 
 const start_chatHandler = (data: undefined, socket: Socket) => {
     console.log("Received connection to start_chat");
