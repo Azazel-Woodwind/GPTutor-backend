@@ -49,7 +49,11 @@ export async function getLessonsHandler(
     res: Response
 ): Promise<Response> {
     try {
-        const { data, error } = await supabase.from("lessons").select();
+        const { data, error } = await supabase
+            .from("lessons")
+            .select(
+                "*, learning_objectives (*), exam_boards (*), author:users (*)"
+            );
 
         if (error) {
             throw error;

@@ -215,28 +215,28 @@ export async function continueConversation({
     currentResponseId,
 }: ContinueConversationParams) {
     try {
-        let valid, reason;
-        if (!first) {
-            ({ valid, reason } = await checkUserMessageGuidelines(
-                socket,
-                message as string
-            ));
-        }
+        // let valid, reason;
+        // if (!first) {
+        //     ({ valid, reason } = await checkUserMessageGuidelines(
+        //         socket,
+        //         message as string
+        //     ));
+        // }
 
-        if (valid || first) {
-            const response = await chat.generateResponse({
-                message,
-                id: currentResponseId,
-                first,
-                temperature: 1,
-            });
-            onResponse && onResponse(response, first);
-        } else {
-            socket.emit(
-                `${channel}_error`,
-                handleError ? handleError(reason) : reason
-            );
-        }
+        // if (valid || first) {
+        const response = await chat.generateResponse({
+            message,
+            id: currentResponseId,
+            first,
+            temperature: 1,
+        });
+        onResponse && onResponse(response, first);
+        // } else {
+        //     socket.emit(
+        //         `${channel}_error`,
+        //         handleError ? handleError(reason) : reason
+        //     );
+        // }
     } catch (error) {
         console.log(error);
     }
