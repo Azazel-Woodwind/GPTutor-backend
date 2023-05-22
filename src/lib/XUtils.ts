@@ -1,6 +1,6 @@
 import supabase from "../config/supa";
 import checkUserMessageGuidelines from "../socket/message.handler";
-import ChatGPTConversation from "./ChatGPTConversation";
+import ChatGPTConversation, { ChatResponse } from "./ChatGPTConversation";
 import OrderMaintaier from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
 import { Socket } from "socket.io";
@@ -71,7 +71,7 @@ export function formatChat(chat: Message[]): string {
     return chatString;
 }
 
-export async function getJsonData(
+export async function getConversationData(
     dataPrompt: string,
     chat: ChatGPTConversation,
     socket: Socket
@@ -106,7 +106,7 @@ type XSetupParams = {
         message: string;
         context: Context;
     }) => void;
-    onResponse: (response: string, first?: boolean) => void;
+    onResponse: (response: ChatResponse, first?: boolean) => void;
     handleError?: (reason: string) => string;
     start?: boolean;
 };
@@ -116,7 +116,7 @@ type ContinueConversationParams = {
     first?: boolean;
     chat: ChatGPTConversation;
     socket: Socket;
-    onResponse: (response: string, first?: boolean) => void;
+    onResponse: (response: ChatResponse, first?: boolean) => void;
     channel: string;
     handleError?: (reason: string) => string;
     currentResponseId?: string;
@@ -228,7 +228,7 @@ export async function continueConversation({
                 message,
                 id: currentResponseId,
                 first,
-                temperature: 0.7,
+                temperature: 1,
             });
             onResponse && onResponse(response, first);
         } else {

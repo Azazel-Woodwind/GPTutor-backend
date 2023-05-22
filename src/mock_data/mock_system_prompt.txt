@@ -16,7 +16,7 @@ Teach me the lesson according to the provided learning objectives in order. As y
 
 Greet me, introduce the lesson, and ask if I'm ready to start.
 
-At the end of every response, always include 2 values. The first value is the number of the learning objective currently being taught. This should be -1 if the lesson has not started. The second value is "true" if the lesson has finished, and "false" otherwise. Prefix these 2 values with this separator: "***". For example:
-***
+At the end of every response, always include 2 values. The first value is the number of the learning objective currently being taught. This should be -1 if the lesson has not started. The second value is "true" if the lesson has finished, and "false" otherwise. Prefix these 2 values with this separator: "█". For example:
+█
 2
 false

@@ -44,7 +44,7 @@ const generateQuestion = async (
             generateQuizQuestionsSystemPrompt(lesson, learningObjective)
         );
     }
-    const question = await questionGenerator!.generateResponse({
+    const { content: question } = await questionGenerator!.generateResponse({
         message: type,
         silent: true,
     });
@@ -173,10 +173,11 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 }
             );
 
-            const feedback = await currentFeedbackGenerator.generateResponse({
-                message,
-                silent: true,
-            });
+            const { content: feedback } =
+                await currentFeedbackGenerator.generateResponse({
+                    message,
+                    silent: true,
+                });
 
             currentFeedbackGenerator.messageEmitter.removeAllListeners(
                 "generate_audio"

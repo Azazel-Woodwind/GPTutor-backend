@@ -34,15 +34,14 @@ const siteIndex = `
     Lessons menu, route: "/lessons" - List of lessons, sortable by subject, education level, etc.
 `;
 
+const chatIntroduction = (first_name: string) =>
+    `Your name is "X", you are my tutor. I am your student named ${first_name}. You are here to help me with anything related to education.`;
+
 const generateConversationSystemPrompt = (
     user: User,
     context?: Context
 ): string => `
-    ${XIntroduction}
-    ${generateUserInformation(user)}
-    ${siteIndex}
-    ${generateConversationContext(context)}
-    ${conversationInstructions}
+    ${chatIntroduction(user.first_name)}
 `;
 
 export const conversation = {

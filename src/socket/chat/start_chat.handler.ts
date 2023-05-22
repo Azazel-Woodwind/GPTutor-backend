@@ -1,5 +1,7 @@
-import { XSetup, getJsonData } from "../../lib/XUtils";
-import ChatGPTConversation from "../../lib/ChatGPTConversation";
+import { XSetup } from "../../lib/XUtils";
+import ChatGPTConversation, {
+    ChatResponse,
+} from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
 import { conversation } from "../../prompts/conversation.prompts";
 
@@ -13,21 +15,21 @@ const start_chatHandler = (data: undefined, socket: Socket) => {
         socket,
     });
 
-    const onResponse = async (response: string) => {
+    const onResponse = async ({ content, data }: ChatResponse) => {
         socket.emit("chat_response_data", {
-            response,
+            response: content,
         });
 
         // const data = await chat.getData(conversation.dataPrompt);
 
-        const data = await getJsonData(
-            conversation.dataPrompt(chat.chatHistory.slice(1)),
-            chat,
-            socket
-        );
-        if (data.navigateTo) {
-            socket.emit("navigate", data.navigateTo);
-        }
+        // const data = await getJsonData(
+        //     conversation.dataPrompt(chat.chatHistory.slice(1)),
+        //     chat,
+        //     socket
+        // );
+        // if (data.navigateTo) {
+        //     socket.emit("navigate", data.navigateTo);
+        // }
     };
 
     const updateContext = (context: Context) => {

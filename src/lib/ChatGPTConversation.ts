@@ -5,6 +5,7 @@ import { findJsonInString } from "./XUtils";
 import supabase from "../config/supa";
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
+import { dataSeparator } from "../prompts/lessons.prompts";
 
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 
@@ -18,6 +19,16 @@ interface ConstructorParams {
 const defaultOps = {
     system: false,
     silent: false,
+};
+
+export type ChatResponse = {
+    content: string;
+    data: string[];
+};
+
+export type ChatCompletion = {
+    response: Message;
+    data: string[];
 };
 
 class ChatGPTConversation {
@@ -68,8 +79,9 @@ class ChatGPTConversation {
         let count = 0;
         let json;
         do {
-            const { content } = await this.generateChatCompletion(dataPrompt, {
-                system: true,
+            const {
+                response: { content },
+            } = await this.generateChatCompletion(dataPrompt, {
                 silent: true,
                 temperature: 0,
             });
@@ -113,25 +125,31 @@ class ChatGPTConversation {
     }: {
         message?: string;
         [key: string]: any;
-    }) {
+    }): Promise<ChatResponse> {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
 
-        const response = await this.generateChatCompletion(undefined, {
-            ...defaultOps,
-            ...opts,
-        });
+        const { response, data } = await this.generateChatCompletion(
+            undefined,
+            {
+                ...defaultOps,
+                ...opts,
+            }
+        );
 
         this.chatHistory.push(response);
 
-        return response.content;
+        return {
+            content: response.content,
+            data,
+        };
     }
 
     generateChatCompletion = async (
         message: string | undefined,
         opts: any
-    ): Promise<Message> => {
+    ): Promise<ChatCompletion> => {
         if (!this.systemPrompt) {
             throw new Error("System prompt not set");
         }
@@ -143,8 +161,6 @@ class ChatGPTConversation {
             const result = {
                 role: "assistant",
                 content: "",
-                delta: "",
-                id: "",
             };
 
             const body = {
@@ -173,7 +189,10 @@ class ChatGPTConversation {
             let currentSentence = "";
 
             let counter = 0;
-            // console.log("OPTS:", opts);
+
+            let inData = false;
+            let responseData = "";
+            // console.log("HISTORY:", this.chatHistory);
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -189,64 +208,66 @@ class ChatGPTConversation {
                             );
                             this.socket.currentUsage = 0;
                         }
-
+                        console.log("RESPONSE:", result);
+                        console.log("DATA:", responseData);
                         return resolve({
-                            role: result.role,
-                            content: result.content,
+                            response: result,
+                            data: responseData.split("\n").filter(Boolean),
                         });
                     }
 
                     this.socket.currentUsage! += 1;
                     try {
                         const response = JSON.parse(data);
+                        if (!response?.choices?.length) return;
 
-                        if (response.id) result.id = response.id;
+                        const delta = response.choices[0].delta;
 
-                        if (response?.choices?.length) {
-                            const delta = response.choices[0].delta;
-                            result.delta = delta.content;
-                            if (delta?.content) {
-                                result.content += delta.content;
-                            }
+                        if (!delta?.content) return;
 
-                            if (delta.role) {
-                                result.role = delta.role;
-                            }
+                        if (delta.content === dataSeparator) {
+                            inData = true;
+                            return;
+                        }
 
-                            opts?.onProgress?.(result);
+                        if (inData) {
+                            responseData += delta.content;
+                            return;
+                        }
 
-                            if (!opts?.silent) {
-                                if (!delta.content) return;
+                        result.content += delta.content;
 
-                                currentSentence += delta.content;
+                        if (delta.role) {
+                            result.role = delta.role;
+                        }
 
-                                if (
-                                    delta.content.includes(".") ||
-                                    delta.content.includes("?") ||
-                                    delta.content.includes("!") ||
-                                    delta.content.includes("\n")
-                                ) {
-                                    currentSentence = currentSentence.trim();
-                                    if (currentSentence) {
-                                        this.messageEmitter.emit(
-                                            "generate_audio",
-                                            {
-                                                text: currentSentence,
-                                                order: counter++,
-                                                id: opts.id,
-                                                first: opts.first,
-                                            }
-                                        );
-                                    }
+                        opts?.onProgress?.(result);
 
-                                    currentSentence = "";
+                        if (!opts?.silent) {
+                            if (!delta.content) return;
+
+                            currentSentence += delta.content;
+
+                            if (
+                                delta.content.includes(".") ||
+                                delta.content.includes("?") ||
+                                delta.content.includes("!") ||
+                                delta.content.includes("\n")
+                            ) {
+                                currentSentence = currentSentence.trim();
+                                if (currentSentence) {
+                                    this.messageEmitter.emit("generate_audio", {
+                                        text: currentSentence,
+                                        order: counter++,
+                                        id: opts.id,
+                                        first: opts.first,
+                                    });
                                 }
 
-                                this.messageEmitter.emit(
-                                    "message",
-                                    delta.content
-                                );
+                                currentSentence = "";
                             }
+
+                            this.messageEmitter.emit("message", delta.content);
                         }
                     } catch (err) {
                         console.warn(

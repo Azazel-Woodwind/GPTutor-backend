@@ -1,9 +1,14 @@
 import supabase from "../../config/supa";
-import { XSetup, getJsonData } from "../../lib/XUtils";
+import { XSetup, getConversationData } from "../../lib/XUtils";
 import startLessonSchema from "../schema/start_lesson.schema";
-import ChatGPTConversation from "../../lib/ChatGPTConversation";
+import ChatGPTConversation, {
+    ChatResponse,
+} from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
-import { lesson } from "../../prompts/lessons.prompts";
+import {
+    generateLessonSystemPrompt,
+    lesson,
+} from "../../prompts/lessons.prompts";
 
 type ChannelData = {
     current_lesson: Lesson;
@@ -28,20 +33,43 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
     });
     console.log(chat.systemPrompt);
 
-    const onResponse = async (response: string) => {
-        const data = await getJsonData(
+    const onResponse = async (response: ChatResponse) => {
+        const data = await getConversationData(
             lesson.dataPrompt(current_lesson, chat.chatHistory.slice(1)),
             chat,
             socket
         );
+
+        const { learningObjectiveNumber, finished } = data;
+        // const systemPrompt = lesson.dataPrompt(
+        //     current_lesson,
+        //     chat.chatHistory.slice(1)
+        // );
+        // console.log("DATA SYSTEM PROMPT:", systemPrompt);
+
+        // const dataFetcher = new ChatGPTConversation({
+        //     systemPrompt,
+        //     socket,
+        // });
+
+        // let {
+        //     response: { content },
+        // } = await dataFetcher.generateChatCompletion(undefined, {
+        //     silent: true,
+        //     temperature: 0,
+        // });
+
+        // console.log("DATA RESPONSE:", content);
+        // const data = content.split("\n").filter(Boolean);
         console.log("DATA:", data);
+        // const [learningObjectiveNumber, finished] = data;
 
         socket.emit("lesson_response_data", {
-            learningObjectiveNumber: !data ? -1 : data.learningObjectiveNumber,
-            response,
+            learningObjectiveNumber: parseInt(learningObjectiveNumber) || -1,
+            response: response.content,
         });
 
-        if (data.finished) {
+        if (finished) {
             socket.emit("lesson_finished", true);
         }
     };
