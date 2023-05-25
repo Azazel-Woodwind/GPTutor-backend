@@ -31,7 +31,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         systemPrompt: lesson.systemPrompt(socket.user!, current_lesson),
         socket,
     });
-    console.log(chat.systemPrompt);
+    // console.log(chat.systemPrompt);
 
     const onResponse = async (response: ChatResponse) => {
         const data = await getConversationData(

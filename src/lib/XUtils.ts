@@ -144,12 +144,13 @@ export async function XSetup(params: XSetupParams) {
             .then(base64 => {
                 if (!first && id !== currentResponseId) return;
 
-                console.log("CONVERTED TO SPEECH DATA:", text);
+                // console.log("CONVERTED TO SPEECH DATA:", text);
                 orderMaintainer.addData(
                     {
                         audio: base64,
                         first,
                         id,
+                        order,
                     },
                     order
                 );

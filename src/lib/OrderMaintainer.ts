@@ -1,7 +1,7 @@
 type ConstructorParams = {
     callback: (data: any) => void;
 };
-class OrderMaintaier {
+class OrderMaintainer {
     nextSentenceNumber: number;
     buffer: Map<number, any>;
     callback: (data: any) => void;
@@ -31,4 +31,4 @@ class OrderMaintaier {
     }
 }
 
-export default OrderMaintaier;
+export default OrderMaintainer;

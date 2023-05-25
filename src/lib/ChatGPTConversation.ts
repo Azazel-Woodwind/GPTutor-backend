@@ -208,8 +208,8 @@ class ChatGPTConversation {
                             );
                             this.socket.currentUsage = 0;
                         }
-                        console.log("RESPONSE:", result);
-                        console.log("DATA:", responseData);
+                        // console.log("RESPONSE:", result);
+                        // console.log("DATA:", responseData);
                         return resolve({
                             response: result,
                             data: responseData.split("\n").filter(Boolean),

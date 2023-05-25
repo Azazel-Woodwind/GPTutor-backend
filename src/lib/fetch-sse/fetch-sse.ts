@@ -28,8 +28,8 @@ export async function fetchSSE(
         try {
             res = await fetch(url, fetchOptions);
         } catch (error: any) {
-            console.log(error);
-            console.log(error.name);
+            console.log("FETCH ERROR:", error);
+            console.log("ERROR NAME:", error.name);
             if (error.name === "AbortError") {
                 console.log("REQUEST TIMEOUT, TRYING AGAIN");
                 count++;
