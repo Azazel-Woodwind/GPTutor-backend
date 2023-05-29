@@ -139,6 +139,7 @@ class ChatGPTConversation {
         );
 
         this.chatHistory.push(response);
+        // console.log(JSON.stringify(this.chatHistory, null, 2));
 
         return {
             content: response.content,

@@ -14,8 +14,8 @@ const generateConversationContext = (context?: Context) => {
     if (!context) return ``;
 
     return `
-    THINGS YOU KNOW ABOUT THE USER ON THE APPLICATION:
-    ${context.path && `Currently on page: ${context.path}`}
+THINGS YOU KNOW ABOUT THE USER ON THE APPLICATION:
+${context.path && `Currently on page: ${context.path}`}
     `;
 };
 
@@ -29,9 +29,9 @@ Example:
 `;
 
 const siteIndex = `
-    XTutor application layout by route and functionality:
-    Free zone, route: "/hub" - The hub, navigate to other pages and talk to X.
-    Lessons menu, route: "/lessons" - List of lessons, sortable by subject, education level, etc.
+XTutor application layout by route and functionality:
+Free zone, route: "/hub" - The hub, navigate to other pages and talk to X.
+Lessons menu, route: "/lessons" - List of lessons, sortable by subject, education level, etc.
 `;
 
 const chatIntroduction = (first_name: string) =>

@@ -111,6 +111,38 @@ type XSetupParams = {
     start?: boolean;
 };
 
+export async function eventEmitterSetup({
+    chat,
+    socket,
+    streamChannel,
+    onReceiveAudioData,
+    onMessage,
+}: {
+    chat: ChatGPTConversation;
+    socket: Socket;
+    streamChannel: string;
+    onReceiveAudioData?: (data: any) => void;
+    onMessage?: (message: string) => void;
+}) {
+    chat.messageEmitter.on(
+        "message",
+        message =>
+            message &&
+            (onMessage
+                ? onMessage(message)
+                : socket.emit(streamChannel, message))
+    );
+
+    chat.messageEmitter.on("generate_audio", ({ text, order, id, first }) => {
+        getAudioData(text)
+            .then(base64 => {
+                onReceiveAudioData &&
+                    onReceiveAudioData({ base64, order, id, first });
+            })
+            .catch(err => console.log(err));
+    });
+}
+
 type ContinueConversationParams = {
     message?: string;
     first?: boolean;
@@ -125,10 +157,10 @@ type ContinueConversationParams = {
 export async function XSetup(params: XSetupParams) {
     const { chat, socket, channel, onMessageX, start } = params;
 
-    chat.messageEmitter.on(
-        "message",
-        message => message && socket.emit(`${channel}_response_stream`, message)
-    );
+    // chat.messageEmitter.on(
+    //     "message",
+    //     message => message && socket.emit(`${channel}_response_stream`, message)
+    // );
 
     // let nextSentenceNumber = 0;
     // const audioData = new Map();
@@ -139,41 +171,43 @@ export async function XSetup(params: XSetupParams) {
             socket.emit(`${channel}_audio_data`, data);
         },
     });
-    chat.messageEmitter.on("generate_audio", ({ text, order, id, first }) => {
-        getAudioData(text)
-            .then(base64 => {
-                if (!first && id !== currentResponseId) return;
+    // chat.messageEmitter.on("generate_audio", ({ text, order, id, first }) => {
+    //     getAudioData(text)
+    //         .then(base64 => {
+    //             if (!first && id !== currentResponseId) return;
 
-                // console.log("CONVERTED TO SPEECH DATA:", text);
-                orderMaintainer.addData(
-                    {
-                        audio: base64,
-                        first,
-                        id,
-                        order,
-                    },
-                    order
-                );
-                // if (order === nextSentenceNumber) {
-                //     socket.emit(`${channel}_audio_data`, {
-                //         audio: base64,
-                //         first,
-                //         id,
-                //     });
-                //     nextSentenceNumber++;
-                //     while (audioData.has(nextSentenceNumber)) {
-                //         socket.emit(`${channel}_audio_data`, {
-                //             audio: audioData.get(nextSentenceNumber),
-                //             first,
-                //             id,
-                //         });
-                //         nextSentenceNumber++;
-                //     }
-                // } else {
-                //     audioData.set(order, base64);
-                // }
-            })
-            .catch(err => console.log(err));
+    //             // console.log("CONVERTED TO SPEECH DATA:", text);
+    //             orderMaintainer.addData(
+    //                 {
+    //                     audio: base64,
+    //                     first,
+    //                     id,
+    //                     order,
+    //                 },
+    //                 order
+    //             );
+    //         })
+    //         .catch(err => console.log(err));
+    // });
+
+    eventEmitterSetup({
+        chat,
+        socket,
+        streamChannel: `${channel}_response_stream`,
+        onReceiveAudioData: ({ base64, order, id, first }) => {
+            if (!first && id !== currentResponseId) return;
+
+            // console.log("CONVERTED TO SPEECH DATA:", text);
+            orderMaintainer.addData(
+                {
+                    audio: base64,
+                    first,
+                    id,
+                    order,
+                },
+                order
+            );
+        },
     });
 
     socket.on(`${channel}_message_x`, ({ message, context, id }) => {
@@ -191,8 +225,9 @@ export async function XSetup(params: XSetupParams) {
     });
 
     socket.on(`${channel}_exit`, () => {
-        chat.cleanUp();
+        console.log(`${channel}_exit`);
 
+        chat.cleanUp();
         socket.removeAllListeners(`${channel}_message_x`);
         socket.removeAllListeners(`${channel}_exit`);
     });
