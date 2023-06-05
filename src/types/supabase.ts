@@ -45,44 +45,44 @@ export interface Database {
           exam_board_name?: string
         }
       }
-      images: {
-        Row: {
-          description: string | null
-          id: string
-          learning_objective_id: string
-          link: string | null
-        }
-        Insert: {
-          description?: string | null
-          id?: string
-          learning_objective_id: string
-          link?: string | null
-        }
-        Update: {
-          description?: string | null
-          id?: string
-          learning_objective_id?: string
-          link?: string | null
-        }
-      }
       learning_objectives: {
         Row: {
-          description: string | null
+          created_at: string | null
+          description: string
           id: string
+          image_description: string
+          image_link: string | null
           lesson_id: string | null
-          title: string | null
+          number: number | null
         }
         Insert: {
-          description?: string | null
+          created_at?: string | null
+          description?: string
           id?: string
+          image_description?: string
+          image_link?: string | null
           lesson_id?: string | null
-          title?: string | null
+          number?: number | null
         }
         Update: {
-          description?: string | null
+          created_at?: string | null
+          description?: string
           id?: string
+          image_description?: string
+          image_link?: string | null
           lesson_id?: string | null
-          title?: string | null
+          number?: number | null
+        }
+      }
+      lesson_statuses: {
+        Row: {
+          status: string
+        }
+        Insert: {
+          status: string
+        }
+        Update: {
+          status?: string
         }
       }
       lessons: {
@@ -91,36 +91,47 @@ export interface Database {
           caption: string | null
           created_at: string | null
           education_level: string | null
-          exam_board: string | null
           id: string
-          is_published: boolean | null
-          is_verified: boolean | null
+          rejection_reason: string | null
+          status: string
           subject: string | null
-          title: string | null
+          title: string
         }
         Insert: {
           author_id?: string | null
           caption?: string | null
           created_at?: string | null
           education_level?: string | null
-          exam_board?: string | null
           id?: string
-          is_published?: boolean | null
-          is_verified?: boolean | null
+          rejection_reason?: string | null
+          status?: string
           subject?: string | null
-          title?: string | null
+          title?: string
         }
         Update: {
           author_id?: string | null
           caption?: string | null
           created_at?: string | null
           education_level?: string | null
-          exam_board?: string | null
           id?: string
-          is_published?: boolean | null
-          is_verified?: boolean | null
+          rejection_reason?: string | null
+          status?: string
           subject?: string | null
-          title?: string | null
+          title?: string
+        }
+      }
+      lessons_on_exam_boards: {
+        Row: {
+          exam_board_name: string
+          lesson_id: string
+        }
+        Insert: {
+          exam_board_name: string
+          lesson_id: string
+        }
+        Update: {
+          exam_board_name?: string
+          lesson_id?: string
         }
       }
       roles: {
@@ -167,6 +178,7 @@ export interface Database {
           first_name: string
           id: string
           last_name: string
+          req_audio_data: boolean
           usage_plan: string
         }
         Insert: {
@@ -176,6 +188,7 @@ export interface Database {
           first_name: string
           id: string
           last_name: string
+          req_audio_data?: boolean
           usage_plan?: string
         }
         Update: {
@@ -185,6 +198,7 @@ export interface Database {
           first_name?: string
           id?: string
           last_name?: string
+          req_audio_data?: boolean
           usage_plan?: string
         }
       }
@@ -204,20 +218,6 @@ export interface Database {
       }
     }
     Views: {
-      editable_lesson: {
-        Row: {
-          id: string | null
-          is_published: boolean | null
-        }
-        Insert: {
-          id?: string | null
-          is_published?: boolean | null
-        }
-        Update: {
-          id?: string | null
-          is_published?: boolean | null
-        }
-      }
       editable_user: {
         Row: {
           education_level: string | null
@@ -248,7 +248,7 @@ export interface Database {
           title: string
           subject: string
           education_level: string
-          exam_board: string
+          exam_boards: Json
           caption: string
           is_published: boolean
           learning_objectives: Json
@@ -259,12 +259,11 @@ export interface Database {
           caption: string | null
           created_at: string | null
           education_level: string | null
-          exam_board: string | null
           id: string
-          is_published: boolean | null
-          is_verified: boolean | null
+          rejection_reason: string | null
+          status: string
           subject: string | null
-          title: string | null
+          title: string
         }
       }
       delete_lesson_by_id: {
@@ -284,33 +283,55 @@ export interface Database {
         Args: {
           lesson_id: string
         }
-        Returns: boolean
+        Returns: undefined
       }
-      update_lesson_by_id: {
-        Args: {
-          lesson_id: string
-          title: string
-          subject: string
-          education_level: string
-          description: string
-          exam_board: string
-          caption: string
-          is_published: boolean
-          learning_objectives: Json
-        }
-        Returns: {
-          author_id: string | null
-          caption: string | null
-          created_at: string | null
-          education_level: string | null
-          exam_board: string | null
-          id: string
-          is_published: boolean | null
-          is_verified: boolean | null
-          subject: string | null
-          title: string | null
-        }
-      }
+      update_lesson_by_id:
+        | {
+            Args: {
+              lesson_id: string
+              title: string
+              subject: string
+              education_level: string
+              exam_board: string
+              caption: string
+              is_published: boolean
+              learning_objectives: Json
+            }
+            Returns: {
+              author_id: string | null
+              caption: string | null
+              created_at: string | null
+              education_level: string | null
+              id: string
+              rejection_reason: string | null
+              status: string
+              subject: string | null
+              title: string
+            }
+          }
+        | {
+            Args: {
+              lesson_id: string
+              title: string
+              subject: string
+              education_level: string
+              exam_boards: Json
+              caption: string
+              is_published: boolean
+              learning_objectives: Json
+            }
+            Returns: {
+              author_id: string | null
+              caption: string | null
+              created_at: string | null
+              education_level: string | null
+              id: string
+              rejection_reason: string | null
+              status: string
+              subject: string | null
+              title: string
+            }
+          }
     }
     Enums: {
       [_ in never]: never

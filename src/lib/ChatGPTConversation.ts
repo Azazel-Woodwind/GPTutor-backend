@@ -38,6 +38,7 @@ class ChatGPTConversation {
     systemPrompt: string | undefined;
     chatHistory: Message[];
     abortController: AbortController | undefined;
+    first: boolean = true;
 
     constructor({
         systemPrompt,
@@ -52,11 +53,7 @@ class ChatGPTConversation {
         this.systemPrompt = systemPrompt;
         this.messageEmitter = new EventEmitter();
         this.socket = socket;
-        if (systemPrompt)
-            socket.currentUsage = socket.currentUsage
-                ? socket.currentUsage +
-                  tokenizer.encode(systemPrompt).text.length
-                : tokenizer.encode(systemPrompt).text.length;
+        this.first = true;
     }
 
     cleanUp() {
@@ -67,10 +64,10 @@ class ChatGPTConversation {
     reset(newSystemPrompt: string) {
         this.chatHistory = [{ role: "system", content: newSystemPrompt }];
         this.systemPrompt = newSystemPrompt;
-        this.socket.currentUsage = this.socket.currentUsage
-            ? this.socket.currentUsage +
-              tokenizer.encode(newSystemPrompt).text.length
-            : tokenizer.encode(newSystemPrompt).text.length;
+        // this.socket.currentUsage = this.socket.currentUsage
+        //     ? this.socket.currentUsage +
+        //       tokenizer.encode(newSystemPrompt).text.length
+        //     : tokenizer.encode(newSystemPrompt).text.length;
     }
 
     async getData(dataPrompt?: string) {
@@ -125,7 +122,7 @@ class ChatGPTConversation {
     }: {
         message?: string;
         [key: string]: any;
-    }): Promise<ChatResponse> {
+    } = {}): Promise<ChatResponse> {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
@@ -153,6 +150,15 @@ class ChatGPTConversation {
     ): Promise<ChatCompletion> => {
         if (!this.systemPrompt) {
             throw new Error("System prompt not set");
+        }
+
+        if (this.first) {
+            this.socket.currentUsage = this.socket.currentUsage
+                ? this.socket.currentUsage +
+                  tokenizer.encode(this.systemPrompt).text.length
+                : tokenizer.encode(this.systemPrompt).text.length;
+
+            this.first = false;
         }
 
         if (message?.length && this.socket.currentUsage)
@@ -192,6 +198,7 @@ class ChatGPTConversation {
             let counter = 0;
 
             let inData = false;
+            let first = true;
             let responseData = "";
             // console.log("HISTORY:", this.chatHistory);
             fetchSSE(url, {
@@ -201,6 +208,7 @@ class ChatGPTConversation {
                 signal: this.abortController.signal,
                 onMessage: async (data: any) => {
                     if (data === "[DONE]") {
+                        this.messageEmitter.emit("end");
                         result.content = result.content.trim();
                         if (this.tokenUsage) {
                             await incrementUsage(
@@ -245,8 +253,6 @@ class ChatGPTConversation {
                         opts?.onProgress?.(result);
 
                         if (!opts?.silent) {
-                            if (!delta.content) return;
-
                             currentSentence += delta.content;
 
                             if (
@@ -268,7 +274,11 @@ class ChatGPTConversation {
                                 currentSentence = "";
                             }
 
-                            this.messageEmitter.emit("message", delta.content);
+                            this.messageEmitter.emit("message", {
+                                delta: delta.content,
+                                first,
+                            });
+                            first = false;
                         }
                     } catch (err) {
                         console.warn(

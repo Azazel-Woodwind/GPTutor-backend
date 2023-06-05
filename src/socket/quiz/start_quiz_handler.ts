@@ -3,11 +3,12 @@ import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import {
     generateFeedbackSystemPrompt,
     generateHintsSystemPrompt,
+    generateQuizAnswerSystemPrompt,
     generateQuizQuestionsSystemPrompt,
 } from "../../prompts/quiz.prompts";
 import { getAudioData } from "../../lib/tts.utils";
 import OrderMaintainer from "../../lib/OrderMaintainer";
-import { eventEmitterSetup } from "../../lib/XUtils";
+import { eventEmitterSetup, streamString } from "../../lib/XUtils";
 
 type ChannelData = {
     lesson: Lesson;
@@ -86,6 +87,7 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
     // let nextFeedbackGenerator: ChatGPTConversation | undefined;
     let currentHintGenerator: ChatGPTConversation | undefined;
     // let nextHintGenerator: ChatGPTConversation | undefined;
+    let attempts = 0;
 
     socket.on("quiz_change_question", async () => {
         console.log("CHANGING QUESTION");
@@ -138,39 +140,19 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
             currentQuestion = question;
         }
 
-        // currentHintGenerator.messageEmitter.on(
-        //     "message",
-        //     message =>
-        //         message &&
-        //         socket.emit("quiz_hint_stream", {
-        //             message,
-        //             questionIndex,
-        //         })
-        // );
-        const audioOrderMaintainer = new OrderMaintainer({
-            callback: data =>
-                socket.emit("quiz_audio_data", { audio: data, id }),
-        });
-
-        // currentHintGenerator.messageEmitter.on(
-        //     "generate_audio",
-        //     ({ text, order }) => {
-        //         getAudioData(text)
-        //             .then(base64 => {
-        //                 console.log("CONVERTED TO SPEECH DATA:", text);
-        //                 audioOrderMaintainer.addData(base64, order);
-        //             })
-        //             .catch(err => console.log(err));
-        //     }
-        // );
+        // const audioOrderMaintainer = new OrderMaintainer({
+        //     callback: data =>
+        //         socket.emit("quiz_audio_data", { audio: data, id }),
+        // });
 
         eventEmitterSetup({
+            generateAudio: false,
             chat: currentHintGenerator,
             socket,
             streamChannel: `quiz_hint_stream`,
-            onReceiveAudioData: ({ base64, order }) => {
-                audioOrderMaintainer.addData(base64, order);
-            },
+            // onReceiveAudioData: ({ base64, order }) => {
+            //     audioOrderMaintainer.addData(base64, order);
+            // },
             onMessage: message =>
                 socket.emit("quiz_hint_stream", {
                     delta: message,
@@ -183,9 +165,9 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 message: "hint",
             });
 
-        currentHintGenerator.messageEmitter.removeAllListeners(
-            "generate_audio"
-        );
+        // currentHintGenerator.messageEmitter.removeAllListeners(
+        //     "generate_audio"
+        // );
         console.log("GENERATED HINT:", response);
 
         socket.emit("quiz_new_hint", {
@@ -200,6 +182,7 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
             console.log("GENERATING FEEDBACK FOR QUESTION:", question);
 
             if (!currentFeedbackGenerator || question !== currentQuestion) {
+                attempts = 0;
                 if (!currentFeedbackGenerator) {
                     currentFeedbackGenerator = new ChatGPTConversation({
                         socket,
@@ -215,19 +198,21 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 }
                 currentQuestion = question;
             }
-            const audioOrderMaintainer = new OrderMaintainer({
-                callback: data =>
-                    socket.emit("quiz_audio_data", { audio: data, id }),
-            });
+            attempts++;
+            // const audioOrderMaintainer = new OrderMaintainer({
+            //     callback: data =>
+            //         socket.emit("quiz_audio_data", { audio: data, id }),
+            // });
             let temp = "";
             let isCorrect: undefined | boolean = undefined;
             eventEmitterSetup({
+                generateAudio: false,
                 chat: currentFeedbackGenerator,
                 socket,
                 streamChannel: `quiz_feedback_stream`,
-                onReceiveAudioData: ({ base64, order }) => {
-                    audioOrderMaintainer.addData(base64, order);
-                },
+                // onReceiveAudioData: ({ base64, order }) => {
+                //     audioOrderMaintainer.addData(base64, order);
+                // },
                 onMessage: delta => {
                     if (isCorrect === undefined) {
                         temp += delta;
@@ -247,35 +232,12 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                     });
                 },
             });
-            // currentFeedbackGenerator.messageEmitter.on(
-            //     "message",
-            //     message =>
-            //         message &&
-            //         socket.emit("quiz_feedback_stream", {
-            //             message,
-            //             questionIndex,
-            //             choiceIndex,
-            //         })
-            // );
-
-            // currentFeedbackGenerator.messageEmitter.on(
-            //     "generate_audio",
-            //     ({ text, order }) => {
-            //         getAudioData(text)
-            //             .then(base64 => {
-            //                 console.log("CONVERTED TO SPEECH DATA:", text);
-            //                 audioOrderMaintainer.addData(base64, order);
-            //             })
-            //             .catch(err => console.log(err));
-            //     }
-            // );
 
             const { content: response } =
                 await currentFeedbackGenerator.generateResponse({
                     message,
                 });
 
-            currentFeedbackGenerator.messageEmitter.removeAllListeners();
             console.log("GENERATED FEEDBACK:", response);
             console.log("QUESTION NUMBER IS:", questionIndex);
             console.log("CHOICE NUMBER IS:", choiceIndex);
@@ -288,13 +250,61 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                     choiceIndex,
                 });
             } else {
-                socket.emit("quiz_new_feedback", {
-                    isCorrect: false,
-                    feedback: response.slice(10),
-                    questionIndex,
-                    choiceIndex,
-                });
+                if (attempts === 4) {
+                    const message =
+                        " Unfortunately, you have no remaining attempts. A modal answer will be provided in the answer box.";
+                    await streamString(
+                        message,
+                        socket,
+                        `quiz_feedback_stream`,
+                        {
+                            questionIndex,
+                            choiceIndex,
+                            isCorrect,
+                        }
+                    );
+                    socket.emit("quiz_new_feedback", {
+                        isCorrect: false,
+                        feedback: response.slice(10) + message,
+                        questionIndex,
+                        choiceIndex,
+                    });
+                    const answerGenerator = new ChatGPTConversation({
+                        socket,
+                        systemPrompt: generateQuizAnswerSystemPrompt(
+                            data.lesson,
+                            question
+                        ),
+                    });
+
+                    answerGenerator.messageEmitter.on(
+                        "message",
+                        ({ delta }) => {
+                            socket.emit("quiz_answer_stream", {
+                                delta,
+                                questionIndex,
+                            });
+                        }
+                    );
+
+                    const { content: answer } =
+                        await answerGenerator.generateResponse();
+
+                    socket.emit("quiz_answer", {
+                        answer,
+                        questionIndex,
+                    });
+                } else {
+                    socket.emit("quiz_new_feedback", {
+                        isCorrect: false,
+                        feedback: response.slice(10),
+                        questionIndex,
+                        choiceIndex,
+                    });
+                }
             }
+
+            currentFeedbackGenerator.messageEmitter.removeAllListeners();
         }
     );
 

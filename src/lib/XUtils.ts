@@ -1,6 +1,7 @@
 import supabase from "../config/supa";
 import checkUserMessageGuidelines from "../socket/message.handler";
 import ChatGPTConversation, { ChatResponse } from "./ChatGPTConversation";
+import DelayedBuffer from "./DelayedBuffer";
 import OrderMaintaier from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
 import { Socket } from "socket.io";
@@ -117,30 +118,66 @@ export async function eventEmitterSetup({
     streamChannel,
     onReceiveAudioData,
     onMessage,
+    delay,
+    sendEndMessage,
+    generateAudio = true,
 }: {
     chat: ChatGPTConversation;
     socket: Socket;
     streamChannel: string;
+    sendEndMessage?: boolean;
     onReceiveAudioData?: (data: any) => void;
     onMessage?: (message: string) => void;
+    delay?: number;
+    generateAudio?: boolean;
 }) {
-    chat.messageEmitter.on(
-        "message",
-        message =>
-            message &&
-            (onMessage
-                ? onMessage(message)
-                : socket.emit(streamChannel, message))
-    );
+    let buffer: DelayedBuffer | undefined = undefined;
+    if (delay) {
+        buffer = new DelayedBuffer(async (delta: string) => {
+            onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
+        }, delay);
+    }
 
-    chat.messageEmitter.on("generate_audio", ({ text, order, id, first }) => {
-        getAudioData(text)
-            .then(base64 => {
-                onReceiveAudioData &&
-                    onReceiveAudioData({ base64, order, id, first });
-            })
-            .catch(err => console.log(err));
+    chat.messageEmitter.on("message", ({ delta, first }) => {
+        if (delta) {
+            if (buffer) {
+                if (first) {
+                    buffer.reset();
+                }
+                buffer.addData(delta);
+                return;
+            }
+            onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
+        }
     });
+
+    if (sendEndMessage) {
+        chat.messageEmitter.on("end", () => {
+            const endString = "[END]";
+            if (buffer) {
+                buffer.addData(endString);
+            } else {
+                onMessage
+                    ? onMessage(endString)
+                    : socket.emit(streamChannel, endString);
+            }
+        });
+    }
+
+    if (generateAudio) {
+        chat.messageEmitter.on(
+            "generate_audio",
+            ({ text, order, id, first }) => {
+                if (!socket.user?.req_audio_data) return;
+                getAudioData(text)
+                    .then(base64 => {
+                        onReceiveAudioData &&
+                            onReceiveAudioData({ base64, order, id, first });
+                    })
+                    .catch(err => console.log(err));
+            }
+        );
+    }
 }
 
 type ContinueConversationParams = {
@@ -152,18 +189,12 @@ type ContinueConversationParams = {
     channel: string;
     handleError?: (reason: string) => string;
     currentResponseId?: string;
+    delay?: number;
 };
 
 export async function XSetup(params: XSetupParams) {
     const { chat, socket, channel, onMessageX, start } = params;
 
-    // chat.messageEmitter.on(
-    //     "message",
-    //     message => message && socket.emit(`${channel}_response_stream`, message)
-    // );
-
-    // let nextSentenceNumber = 0;
-    // const audioData = new Map();
     let currentResponseId: undefined | string = undefined;
 
     const orderMaintainer = new OrderMaintaier({
@@ -171,29 +202,12 @@ export async function XSetup(params: XSetupParams) {
             socket.emit(`${channel}_audio_data`, data);
         },
     });
-    // chat.messageEmitter.on("generate_audio", ({ text, order, id, first }) => {
-    //     getAudioData(text)
-    //         .then(base64 => {
-    //             if (!first && id !== currentResponseId) return;
-
-    //             // console.log("CONVERTED TO SPEECH DATA:", text);
-    //             orderMaintainer.addData(
-    //                 {
-    //                     audio: base64,
-    //                     first,
-    //                     id,
-    //                     order,
-    //                 },
-    //                 order
-    //             );
-    //         })
-    //         .catch(err => console.log(err));
-    // });
 
     eventEmitterSetup({
         chat,
         socket,
         streamChannel: `${channel}_response_stream`,
+        sendEndMessage: true,
         onReceiveAudioData: ({ base64, order, id, first }) => {
             if (!first && id !== currentResponseId) return;
 
@@ -208,6 +222,7 @@ export async function XSetup(params: XSetupParams) {
                 order
             );
         },
+        delay: 800,
     });
 
     socket.on(`${channel}_message_x`, ({ message, context, id }) => {
@@ -220,6 +235,7 @@ export async function XSetup(params: XSetupParams) {
         continueConversation({
             message,
             currentResponseId,
+            delay: 600,
             ...params,
         });
     });
@@ -236,6 +252,7 @@ export async function XSetup(params: XSetupParams) {
         continueConversation({
             ...params,
             first: true,
+            delay: 600,
         });
     }
 }
@@ -249,6 +266,7 @@ export async function continueConversation({
     channel,
     handleError,
     currentResponseId,
+    delay,
 }: ContinueConversationParams) {
     try {
         // let valid, reason;
@@ -267,6 +285,13 @@ export async function continueConversation({
             temperature: 1,
         });
         onResponse && onResponse(response, first);
+        // if (delay) {
+        //     setTimeout(() => {
+        //         onResponse && onResponse(response, first);
+        //     }, delay);
+        // } else {
+        //     onResponse && onResponse(response, first);
+        // }
         // } else {
         //     socket.emit(
         //         `${channel}_error`,
@@ -277,3 +302,26 @@ export async function continueConversation({
         console.log(error);
     }
 }
+
+export async function streamString(
+    string: string,
+    socket: Socket,
+    channel: string,
+    data: any
+): Promise<void> {
+    return new Promise(async resolve => {
+        for (const char of string) {
+            socket.emit(channel, { delta: char, ...data });
+            await new Promise(resolve => setTimeout(resolve, 35));
+        }
+        resolve();
+    });
+}
+
+// function that separates list by commas with and separating last two words
+export const commaSeparate = (list: string[]) => {
+    if (list.length === 1) return list[0];
+
+    const last = list.pop()!;
+    return `${list.join(", ")} and ${last}`;
+};
