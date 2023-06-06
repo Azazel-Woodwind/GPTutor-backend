@@ -11,7 +11,16 @@ app.use(deserialiseUser);
 
 app.use(express.json());
 
-app.use(cors());
+const corsOptions = {
+    origin: "https://app.xtutor.ai",
+    optionsSuccessStatus: 200,
+};
+
+if (process.env.NODE_ENV === "development") {
+    app.use(cors());
+} else {
+    app.use(cors(corsOptions));
+}
 
 app.use("/", apiRouter);
 

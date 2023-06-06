@@ -8,6 +8,7 @@ declare global {
             JWT_SECRET: string;
             SUPABASE_DB_URL: string;
             SUPABASE_SERVICE_ROLE_KEY: string;
+            NODE_ENV: string;
         }
     }
 }
