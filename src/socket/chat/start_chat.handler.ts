@@ -65,6 +65,7 @@ const start_chatHandler = (data: undefined, socket: Socket) => {
         onResponse,
         onMessageX,
         handleError,
+        start: true,
     });
 };
 
