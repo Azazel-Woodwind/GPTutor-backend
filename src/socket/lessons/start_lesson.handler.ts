@@ -1,5 +1,5 @@
 import supabase from "../../config/supa";
-import { XSetup, getConversationData } from "../../lib/XUtils";
+import { getConversationData } from "../../lib/XUtils";
 import startLessonSchema from "../schema/start_lesson.schema";
 import ChatGPTConversation, {
     ChatResponse,
@@ -9,6 +9,7 @@ import {
     generateLessonSystemPrompt,
     lesson,
 } from "../../prompts/lessons.prompts";
+import { XSetup } from "../../lib/socketSetup";
 
 type ChannelData = {
     current_lesson: Lesson;
@@ -30,6 +31,21 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
     const chat = new ChatGPTConversation({
         systemPrompt: lesson.systemPrompt(socket.user!, current_lesson),
         socket,
+    });
+
+    chat.messageEmitter.on("data", data => {
+        data = data.split("\n").filter(Boolean);
+        console.log("DATA:", data);
+        let [learningObjectiveNumber, finished] = data;
+        learningObjectiveNumber = parseInt(learningObjectiveNumber) || -1;
+        socket.emit(
+            "lesson_learning_objective_change",
+            learningObjectiveNumber
+        );
+
+        if (finished === "true") {
+            socket.emit("lesson_finished", true);
+        }
     });
     // console.log(chat.systemPrompt);
 
@@ -61,7 +77,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
 
         // console.log("DATA RESPONSE:", content);
         // const data = content.split("\n").filter(Boolean);
-        console.log("DATA:", data);
+        // console.log("DATA:", data);
         // const [learningObjectiveNumber, finished] = data;
 
         socket.emit("lesson_response_data", {

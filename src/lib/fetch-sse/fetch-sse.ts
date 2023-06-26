@@ -107,5 +107,7 @@ export async function fetchSSE(
         }
     }
 
+    // console.log("REAL RESPONSE:", res);
+
     return res;
 }

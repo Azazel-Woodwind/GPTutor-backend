@@ -8,7 +8,8 @@ import {
 } from "../../prompts/quiz.prompts";
 import { getAudioData } from "../../lib/tts.utils";
 import OrderMaintainer from "../../lib/OrderMaintainer";
-import { eventEmitterSetup, streamString } from "../../lib/XUtils";
+import { streamString } from "../../lib/XUtils";
+import { eventEmitterSetup } from "../../lib/socketSetup";
 
 type ChannelData = {
     lesson: Lesson;

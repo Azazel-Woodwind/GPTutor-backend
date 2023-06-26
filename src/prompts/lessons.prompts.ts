@@ -30,18 +30,18 @@ ${formatLearningObjectives(
 export const dataSeparator = "█";
 
 const lessonInstructions = `
-Teach me the lesson according to the provided learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective. Transition between each learning objective in a natural manner without directly mentioning them. Do not skip any learning objectives. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
+Teach me the lesson according to the provided learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
 
-Greet me, introduce the lesson, and ask if I'm ready to start.`;
+Greet me, introduce the lesson, and ask if I'm ready to start. Please do not begin teaching me unless I have confirmed that I am ready.`;
 
 const dataInstructions = `
-At the end of every response, always include 2 values separated by a new line. The first value is the learning objective number you are currently teaching to me. This should be -1 before the student confirms they are happy to begin the lesson. The second value is "true" if the lesson has finished, and "false" otherwise. Prefix these 2 values with this separator: "█". For example:
-█
+On the first two lines of every response, always include 2 values. The first value is the number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed. The second value is "true" if the lesson has finished, and "false" otherwise. Always enclose this data between this character: "${dataSeparator}". For example:
+${dataSeparator}
 2
 false
+${dataSeparator}
 `;
 
-const lessonSystemPromptEnding = `Greet the student, introduce the lesson, and ask if they're ready to start. Do not under any circumstance respond with what the student would say. Respond as if you are the tutor, not the student`;
 const getJsonDataPrompt = (lesson: Lesson, history: Message[]) => `
 Here is information about a lesson that a teacher is teaching to a student:
 ${generateLessonInformation(lesson)}

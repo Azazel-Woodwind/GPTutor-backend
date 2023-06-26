@@ -1,13 +1,13 @@
 import { EventEmitter } from "events";
 import { fetchSSE } from "./fetch-sse/fetch-sse";
-import GPT3Tokenizer from "gpt3-tokenizer";
 import { findJsonInString } from "./XUtils";
 import supabase from "../config/supa";
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
 import { dataSeparator } from "../prompts/lessons.prompts";
+import { encoding_for_model } from "@dqbd/tiktoken";
 
-const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+const encoding = encoding_for_model("gpt-3.5-turbo");
 
 interface ConstructorParams {
     systemPrompt?: string;
@@ -155,14 +155,14 @@ class ChatGPTConversation {
         if (this.first) {
             this.socket.currentUsage = this.socket.currentUsage
                 ? this.socket.currentUsage +
-                  tokenizer.encode(this.systemPrompt).text.length
-                : tokenizer.encode(this.systemPrompt).text.length;
+                  encoding.encode(this.systemPrompt).length
+                : encoding.encode(this.systemPrompt).length;
 
             this.first = false;
         }
 
         if (message?.length && this.socket.currentUsage)
-            this.socket.currentUsage += tokenizer.encode(message).text.length;
+            this.socket.currentUsage += encoding.encode(message).length;
 
         return new Promise(async (resolve, reject) => {
             const result = {
@@ -211,14 +211,18 @@ class ChatGPTConversation {
                         this.messageEmitter.emit("end");
                         result.content = result.content.trim();
                         if (this.tokenUsage) {
+                            console.log(
+                                "SOCKET USAGE:",
+                                this.socket.currentUsage
+                            );
                             await incrementUsage(
                                 this.socket.user!.id,
                                 this.socket.currentUsage!
                             );
                             this.socket.currentUsage = 0;
                         }
-                        // console.log("RESPONSE:", result);
-                        // console.log("DATA:", responseData);
+                        console.log("RESPONSE:", result);
+                        console.log("DATA:", responseData);
                         return resolve({
                             response: result,
                             data: responseData.split("\n").filter(Boolean),
@@ -235,7 +239,14 @@ class ChatGPTConversation {
                         if (!delta?.content) return;
 
                         if (delta.content === dataSeparator) {
-                            inData = true;
+                            if (!inData) {
+                                inData = true;
+                                return;
+                            }
+
+                            inData = false;
+                            console.log("DATA:", responseData);
+                            this.messageEmitter.emit("data", responseData);
                             return;
                         }
 

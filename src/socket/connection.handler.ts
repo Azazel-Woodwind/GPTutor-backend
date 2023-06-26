@@ -23,7 +23,7 @@ const handleConnection = async (socket: Socket) => {
                 filter: `id=eq.${socket.user?.id}`,
             },
             payload => {
-                console.log("Change received in public.users", payload);
+                // console.log("Change received in public.users", payload);
                 updateSocketUser(socket);
             }
         )
@@ -40,7 +40,7 @@ const handleConnection = async (socket: Socket) => {
                 filter: `id=eq.${socket.user?.id}`,
             },
             payload => {
-                console.log("Change received in auth.users", payload);
+                // console.log("Change received in auth.users", payload);
                 updateSocketUser(socket);
             }
         )

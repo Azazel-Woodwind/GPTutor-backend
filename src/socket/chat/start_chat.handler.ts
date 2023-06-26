@@ -1,9 +1,9 @@
-import { XSetup } from "../../lib/XUtils";
 import ChatGPTConversation, {
     ChatResponse,
 } from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
 import { conversation } from "../../prompts/conversation.prompts";
+import { XSetup } from "../../lib/socketSetup";
 
 const start_chatHandler = (data: undefined, socket: Socket) => {
     console.log("Received connection to start_chat");
