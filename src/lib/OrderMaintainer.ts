@@ -13,6 +13,7 @@ class OrderMaintainer {
     }
 
     addData(data: any, order: number) {
+        console.log(order, this.nextSentenceNumber);
         if (order === this.nextSentenceNumber) {
             this.callback(data);
             this.nextSentenceNumber++;

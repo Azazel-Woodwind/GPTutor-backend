@@ -4,6 +4,10 @@ import ChatGPTConversation, { ChatResponse } from "./ChatGPTConversation";
 
 import { Socket } from "socket.io";
 
+import { encoding_for_model } from "@dqbd/tiktoken";
+import OrderMaintainer from "./OrderMaintainer";
+import { getAudioData } from "./tts.utils";
+
 export async function exceededTokenQuota(id: string, limit: number) {
     const { data: user, error } = await supabase
         .from("users")
@@ -98,6 +102,86 @@ export async function streamString(
         }
         resolve();
     });
+}
+
+type streamStringProps = {
+    string: string;
+    socket: Socket;
+    streamChannel: string;
+    data?: any;
+    audioChannel?: string;
+};
+
+export async function streamChatResponse({
+    string,
+    socket,
+    streamChannel,
+    audioChannel,
+}: streamStringProps): Promise<void> {
+    const encoding = encoding_for_model("gpt-3.5-turbo");
+
+    let currentSentence = "";
+    let orderMaintainer: undefined | OrderMaintainer = undefined;
+
+    if (audioChannel) {
+        orderMaintainer = new OrderMaintainer({
+            callback: (data: any) => {
+                console.log("sending audio data to channel", audioChannel);
+                socket.emit(audioChannel, data);
+            },
+        });
+    }
+
+    const tokens = encoding.encode(string);
+    let sentenceNumber = 0;
+    return new Promise(async resolve => {
+        for (let i = 0; i < tokens.length; i++) {
+            const tokenEncoding = tokens[i];
+            const bytes = encoding.decode_single_token_bytes(tokenEncoding);
+            const token = Buffer.from(bytes).toString("ascii");
+
+            currentSentence += token;
+
+            if (audioChannel && tokenContainsStopper(token)) {
+                currentSentence = currentSentence.trim();
+                if (currentSentence) {
+                    getAudioData(currentSentence).then(base64 => {
+                        console.log("here");
+                        orderMaintainer!.addData(
+                            {
+                                audio: base64,
+                                first: true,
+                                order: sentenceNumber,
+                            },
+                            sentenceNumber
+                        );
+                        sentenceNumber++;
+                    });
+                }
+
+                currentSentence = "";
+            }
+            socket.emit(streamChannel, token);
+            await new Promise(resolve => setTimeout(resolve, 35));
+        }
+        socket.emit(streamChannel, "[END]");
+
+        socket.emit("chat_response_data", {
+            response: string,
+        });
+
+        encoding.free();
+        resolve();
+    });
+}
+
+export function tokenContainsStopper(token: string) {
+    return (
+        token.includes(".") ||
+        token.includes("?") ||
+        token.includes("!") ||
+        token.includes("\n")
+    );
 }
 
 // function that separates list by commas with and separating last two words

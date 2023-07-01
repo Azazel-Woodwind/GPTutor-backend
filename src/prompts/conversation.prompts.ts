@@ -41,7 +41,7 @@ const generateConversationSystemPrompt = (
     user: User,
     context?: Context
 ): string => `
-    ${chatIntroduction(user.first_name)}
+${chatIntroduction(user.first_name)}
 `;
 
 export const conversation = {

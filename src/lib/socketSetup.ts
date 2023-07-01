@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import ChatGPTConversation, { ChatResponse } from "./ChatGPTConversation";
 import DelayedBuffer from "./DelayedBuffer";
-import OrderMaintaier from "./OrderMaintainer";
+import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
 
 type XSetupParams = {
@@ -105,7 +105,7 @@ export async function XSetup(params: XSetupParams) {
 
     let currentResponseId: undefined | string = undefined;
 
-    const orderMaintainer = new OrderMaintaier({
+    const orderMaintainer = new OrderMaintainer({
         callback: (data: any) => {
             socket.emit(`${channel}_audio_data`, data);
         },

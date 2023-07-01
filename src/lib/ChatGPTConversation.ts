@@ -7,8 +7,6 @@ import { Socket } from "socket.io";
 import { dataSeparator } from "../prompts/lessons.prompts";
 import { encoding_for_model } from "@dqbd/tiktoken";
 
-const encoding = encoding_for_model("gpt-3.5-turbo");
-
 interface ConstructorParams {
     systemPrompt?: string;
     chatHistory?: Message[];
@@ -152,6 +150,8 @@ class ChatGPTConversation {
             throw new Error("System prompt not set");
         }
 
+        const encoding = encoding_for_model("gpt-3.5-turbo");
+
         if (this.first) {
             this.socket.currentUsage = this.socket.currentUsage
                 ? this.socket.currentUsage +
@@ -163,6 +163,8 @@ class ChatGPTConversation {
 
         if (message?.length && this.socket.currentUsage)
             this.socket.currentUsage += encoding.encode(message).length;
+
+        encoding.free();
 
         return new Promise(async (resolve, reject) => {
             const result = {
