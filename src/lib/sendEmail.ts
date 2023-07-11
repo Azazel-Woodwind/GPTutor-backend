@@ -45,6 +45,8 @@ async function sendEmail({ to, from, subject, html }: Props) {
     };
     const command = new SendEmailCommand(input);
     const response = await client.send(command);
+
+    return response;
 }
 
 export default sendEmail;

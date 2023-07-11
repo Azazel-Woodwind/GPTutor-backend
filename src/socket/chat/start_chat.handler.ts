@@ -127,7 +127,7 @@ const start_chatHandler = (data: any, socket: Socket) => {
             onResponse,
             onMessageX,
             handleError,
-            start: false,
+            start: true,
         });
     }
 };

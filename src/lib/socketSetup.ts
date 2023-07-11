@@ -26,7 +26,7 @@ export async function eventEmitterSetup({
     streamChannel,
     onReceiveAudioData,
     onMessage,
-    delay,
+    delay = 0,
     sendEndMessage,
     generateAudio = true,
 }: {
@@ -39,36 +39,31 @@ export async function eventEmitterSetup({
     delay?: number;
     generateAudio?: boolean;
 }) {
-    let buffer: DelayedBuffer | undefined = undefined;
-    if (delay) {
-        buffer = new DelayedBuffer(async (delta: string) => {
+    const speed = 35;
+    const buffer = new DelayedBuffer(
+        async (delta: string) => {
             onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
-        }, delay);
-    }
+        },
+        delay,
+        speed
+    );
 
     chat.messageEmitter.on("message", ({ delta, first }) => {
         if (delta) {
-            if (buffer) {
-                if (first) {
-                    buffer.reset();
-                }
-                buffer.addData(delta);
-                return;
+            if (first) {
+                buffer.reset();
             }
-            onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
+            // buffer.addData(delta);
+            for (const char of delta) {
+                buffer.addData(char);
+            }
         }
     });
 
     if (sendEndMessage) {
         chat.messageEmitter.on("end", () => {
             const endString = "[END]";
-            if (buffer) {
-                buffer.addData(endString);
-            } else {
-                onMessage
-                    ? onMessage(endString)
-                    : socket.emit(streamChannel, endString);
-            }
+            buffer.addData(endString);
         });
     }
 
@@ -102,6 +97,7 @@ type ContinueConversationParams = {
 
 export async function XSetup(params: XSetupParams) {
     const { chat, socket, channel, onMessageX, start } = params;
+    const delay = 700;
 
     let currentResponseId: undefined | string = undefined;
 
@@ -130,7 +126,7 @@ export async function XSetup(params: XSetupParams) {
                 order
             );
         },
-        delay: 800,
+        delay,
     });
 
     socket.on(`${channel}_message_x`, ({ message, context, id }) => {
@@ -143,7 +139,6 @@ export async function XSetup(params: XSetupParams) {
         continueConversation({
             message,
             currentResponseId,
-            delay: 600,
             ...params,
         });
     });
@@ -160,7 +155,6 @@ export async function XSetup(params: XSetupParams) {
         continueConversation({
             ...params,
             first: true,
-            delay: 600,
         });
     }
 }
