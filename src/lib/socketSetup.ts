@@ -1,29 +1,14 @@
 import { Socket } from "socket.io";
-import ChatGPTConversation, { ChatResponse } from "./ChatGPTConversation";
+import ChatGPTConversation from "./ChatGPTConversation";
 import DelayedBuffer from "./DelayedBuffer";
 import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
-
-type XSetupParams = {
-    chat: ChatGPTConversation;
-    socket: Socket;
-    channel: string;
-    onMessageX?: ({
-        message,
-        context,
-    }: {
-        message: string;
-        context: Context;
-    }) => void;
-    onResponse: (response: ChatResponse, first?: boolean) => void;
-    handleError?: (reason: string) => string;
-    start?: boolean;
-};
 
 export async function eventEmitterSetup({
     chat,
     socket,
     streamChannel,
+    onResponseData,
     onReceiveAudioData,
     onMessage,
     delay = 0,
@@ -33,13 +18,15 @@ export async function eventEmitterSetup({
     chat: ChatGPTConversation;
     socket: Socket;
     streamChannel: string;
+    onResponseData?: (data: any) => void;
+    dataChannel?: string;
     sendEndMessage?: boolean;
     onReceiveAudioData?: (data: any) => void;
     onMessage?: (message: string) => void;
     delay?: number;
     generateAudio?: boolean;
 }) {
-    const speed = 35;
+    const speed = 20;
     const buffer = new DelayedBuffer(
         async (delta: string) => {
             onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
@@ -59,6 +46,10 @@ export async function eventEmitterSetup({
             }
         }
     });
+
+    if (onResponseData) {
+        chat.messageEmitter.on("data", onResponseData);
+    }
 
     if (sendEndMessage) {
         chat.messageEmitter.on("end", () => {
@@ -88,15 +79,32 @@ type ContinueConversationParams = {
     first?: boolean;
     chat: ChatGPTConversation;
     socket: Socket;
-    onResponse: (response: ChatResponse, first?: boolean) => void;
+    onResponse: (response: string, first?: boolean) => void;
     channel: string;
     handleError?: (reason: string) => string;
     currentResponseId?: string;
     delay?: number;
 };
 
+type XSetupParams = {
+    chat: ChatGPTConversation;
+    socket: Socket;
+    channel: string;
+    onMessageX?: ({
+        message,
+        context,
+    }: {
+        message: string;
+        context: Context;
+    }) => void;
+    onResponse: (response: string, first?: boolean) => void;
+    handleError?: (reason: string) => string;
+    start?: boolean;
+    onResponseData?: (data: any) => void;
+};
+
 export async function XSetup(params: XSetupParams) {
-    const { chat, socket, channel, onMessageX, start } = params;
+    const { chat, socket, channel, onMessageX, start, onResponseData } = params;
     const delay = 700;
 
     let currentResponseId: undefined | string = undefined;
@@ -111,7 +119,9 @@ export async function XSetup(params: XSetupParams) {
         chat,
         socket,
         streamChannel: `${channel}_response_stream`,
+        dataChannel: `${channel}_data`,
         sendEndMessage: true,
+        onResponseData,
         onReceiveAudioData: ({ base64, order, id, first }) => {
             if (!first && id !== currentResponseId) return;
 
@@ -163,23 +173,10 @@ export async function continueConversation({
     message,
     first,
     chat,
-    socket,
     onResponse,
-    channel,
-    handleError,
     currentResponseId,
-    delay,
 }: ContinueConversationParams) {
     try {
-        // let valid, reason;
-        // if (!first) {
-        //     ({ valid, reason } = await checkUserMessageGuidelines(
-        //         socket,
-        //         message as string
-        //     ));
-        // }
-
-        // if (valid || first) {
         const response = await chat.generateResponse({
             message,
             id: currentResponseId,
@@ -187,19 +184,6 @@ export async function continueConversation({
             temperature: 1,
         });
         onResponse && onResponse(response, first);
-        // if (delay) {
-        //     setTimeout(() => {
-        //         onResponse && onResponse(response, first);
-        //     }, delay);
-        // } else {
-        //     onResponse && onResponse(response, first);
-        // }
-        // } else {
-        //     socket.emit(
-        //         `${channel}_error`,
-        //         handleError ? handleError(reason) : reason
-        //     );
-        // }
     } catch (error) {
         console.log(error);
     }

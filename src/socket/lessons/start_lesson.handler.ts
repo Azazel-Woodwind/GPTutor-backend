@@ -1,9 +1,7 @@
 import supabase from "../../config/supa";
 import { getConversationData } from "../../lib/XUtils";
 import startLessonSchema from "../schema/start_lesson.schema";
-import ChatGPTConversation, {
-    ChatResponse,
-} from "../../lib/ChatGPTConversation";
+import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
 import {
     generateLessonSystemPrompt,
@@ -13,6 +11,11 @@ import { XSetup } from "../../lib/socketSetup";
 
 type ChannelData = {
     current_lesson: Lesson;
+};
+
+type LessonResponseData = {
+    learningObjectiveNumber: number;
+    finished: boolean;
 };
 
 const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
@@ -33,59 +36,20 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         socket,
     });
 
-    chat.messageEmitter.on("data", data => {
-        data = data.split("\n").filter(Boolean);
+    const onResponse = async (response: string) => {
+        socket.emit("lesson_response_data", {
+            response: response,
+        });
+    };
+
+    const onResponseData = (data: LessonResponseData) => {
         console.log("DATA:", data);
-        let [learningObjectiveNumber, finished] = data;
-        learningObjectiveNumber = parseInt(learningObjectiveNumber) || -1;
         socket.emit(
             "lesson_learning_objective_change",
-            learningObjectiveNumber
+            data.learningObjectiveNumber
         );
 
-        if (finished === "true") {
-            socket.emit("lesson_finished", true);
-        }
-    });
-    // console.log(chat.systemPrompt);
-
-    const onResponse = async (response: ChatResponse) => {
-        const data = await getConversationData(
-            lesson.dataPrompt(current_lesson, chat.chatHistory.slice(1)),
-            chat,
-            socket
-        );
-
-        const { learningObjectiveNumber, finished } = data;
-        // const systemPrompt = lesson.dataPrompt(
-        //     current_lesson,
-        //     chat.chatHistory.slice(1)
-        // );
-        // console.log("DATA SYSTEM PROMPT:", systemPrompt);
-
-        // const dataFetcher = new ChatGPTConversation({
-        //     systemPrompt,
-        //     socket,
-        // });
-
-        // let {
-        //     response: { content },
-        // } = await dataFetcher.generateChatCompletion(undefined, {
-        //     silent: true,
-        //     temperature: 0,
-        // });
-
-        // console.log("DATA RESPONSE:", content);
-        // const data = content.split("\n").filter(Boolean);
-        // console.log("DATA:", data);
-        // const [learningObjectiveNumber, finished] = data;
-
-        socket.emit("lesson_response_data", {
-            learningObjectiveNumber: parseInt(learningObjectiveNumber) || -1,
-            response: response.content,
-        });
-
-        if (finished) {
+        if (data.finished) {
             socket.emit("lesson_finished", true);
         }
     };
@@ -96,6 +60,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         channel: "lesson",
         onResponse,
         start: true,
+        onResponseData,
     });
 };
 

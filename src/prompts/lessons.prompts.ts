@@ -1,4 +1,5 @@
 import { formatChat } from "../lib/XUtils";
+import { generateDataPrompt } from "./data.prompts";
 
 const formatLearningObjectives = (learningObjectives: LearningObjective[]) =>
     learningObjectives
@@ -67,6 +68,15 @@ You must respond with ONLY a JSON object with two keys: 'learningObjectiveNumber
 // END
 // You must respond with 2 values on new lines. The first value is the number of the learning objective that the teacher is most recently teaching to the student. If the student has not confirmed that they are ready to start the lesson or no learning objective is being taught, you must assume that the learning objective number is -1. The second value is "true" if and only if the teacher has ended the lesson and wished goodbye to the student, else "false".
 // `;
+
+export const lessonDataPrompt = generateDataPrompt({
+    definitions: {
+        learningObjectiveNumber:
+            "The number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed.",
+        finished: "'true' if the lesson has finished, and 'false' otherwise",
+    },
+    start: true,
+});
 
 const lessonIntroduction = (first_name: string) =>
     `Your name is "X", you are my tutor. I am your student named ${first_name}. Please teach me this lesson:`;

@@ -1,6 +1,4 @@
-import ChatGPTConversation, {
-    ChatResponse,
-} from "../../lib/ChatGPTConversation";
+import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
 import { conversation } from "../../prompts/conversation.prompts";
 import { XSetup } from "../../lib/socketSetup";
@@ -18,9 +16,9 @@ const start_chatHandler = (data: any, socket: Socket) => {
         socket,
     });
 
-    const onResponse = async ({ content, data }: ChatResponse) => {
+    const onResponse = async (response: string) => {
         socket.emit("chat_response_data", {
-            response: content,
+            response,
         });
 
         // const data = await chat.getData(conversation.dataPrompt);

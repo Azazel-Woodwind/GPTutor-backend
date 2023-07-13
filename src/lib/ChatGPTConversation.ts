@@ -4,8 +4,8 @@ import { findJsonInString } from "./XUtils";
 import supabase from "../config/supa";
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
-import { dataSeparator } from "../prompts/lessons.prompts";
 import { encoding_for_model } from "@dqbd/tiktoken";
+import { generateDataPrompt } from "../prompts/data.prompts";
 
 interface ConstructorParams {
     systemPrompt?: string;
@@ -17,16 +17,6 @@ interface ConstructorParams {
 const defaultOps = {
     system: false,
     silent: false,
-};
-
-export type ChatResponse = {
-    content: string;
-    data: string[];
-};
-
-export type ChatCompletion = {
-    response: Message;
-    data: string[];
 };
 
 class ChatGPTConversation {
@@ -74,14 +64,13 @@ class ChatGPTConversation {
         let count = 0;
         let json;
         do {
-            const {
-                response: { content },
-            } = await this.generateChatCompletion(dataPrompt, {
+            const response = await this.generateChatCompletion({
+                message: dataPrompt,
                 silent: true,
                 temperature: 0,
             });
-            console.log("Json data:", content, "end of json data");
-            json = findJsonInString(content);
+            console.log("Json data:", response, "end of json data");
+            json = findJsonInString(response.content);
 
             count++;
         } while (!json && count < 5);
@@ -116,36 +105,45 @@ class ChatGPTConversation {
 
     async generateResponse({
         message,
+        dataPrompt,
         ...opts
     }: {
         message?: string;
+        dataPrompt?: {
+            definitions: { [key: string]: string };
+            start?: boolean;
+        };
         [key: string]: any;
-    } = {}): Promise<ChatResponse> {
+    } = {}): Promise<string> {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
 
-        const { response, data } = await this.generateChatCompletion(
-            undefined,
-            {
-                ...defaultOps,
-                ...opts,
-            }
-        );
+        const response = await this.generateChatCompletion({
+            message,
+            dataPrompt,
+            ...defaultOps,
+            ...opts,
+        });
 
         this.chatHistory.push(response);
         // console.log(JSON.stringify(this.chatHistory, null, 2));
 
-        return {
-            content: response.content,
-            data,
-        };
+        return response.content;
     }
 
-    generateChatCompletion = async (
-        message: string | undefined,
-        opts: any
-    ): Promise<ChatCompletion> => {
+    private async generateChatCompletion({
+        message,
+        dataPrompt,
+        ...opts
+    }: {
+        message?: string;
+        dataPrompt?: {
+            definitions: { [key: string]: string };
+            start?: boolean;
+        };
+        [key: string]: any;
+    }): Promise<Message> {
         if (!this.systemPrompt) {
             throw new Error("System prompt not set");
         }
@@ -179,7 +177,15 @@ class ChatGPTConversation {
                           ...this.chatHistory,
                           {
                               role: opts.system ? "system" : "user",
-                              content: message,
+                              content:
+                                  message +
+                                  (dataPrompt
+                                      ? `\n${generateDataPrompt({
+                                            definitions:
+                                                dataPrompt!.definitions,
+                                            start: dataPrompt!.start,
+                                        })}`
+                                      : ""),
                           },
                       ]
                     : this.chatHistory,
@@ -202,6 +208,7 @@ class ChatGPTConversation {
             let inData = false;
             let first = true;
             let responseData = "";
+            // let quotationMarkCount = 0;
             // console.log("HISTORY:", this.chatHistory);
             fetchSSE(url, {
                 method: "POST",
@@ -224,11 +231,7 @@ class ChatGPTConversation {
                             this.socket.currentUsage = 0;
                         }
                         console.log("RESPONSE:", result);
-                        console.log("DATA:", responseData);
-                        return resolve({
-                            response: result,
-                            data: responseData.split("\n").filter(Boolean),
-                        });
+                        return resolve(result);
                     }
 
                     this.socket.currentUsage! += 1;
@@ -240,15 +243,18 @@ class ChatGPTConversation {
 
                         if (!delta?.content) return;
 
-                        if (delta.content === dataSeparator) {
+                        if (delta.content === '"""') {
                             if (!inData) {
                                 inData = true;
-                                return;
+                            } else {
+                                inData = false;
+                                console.log("DATA:", responseData);
+                                this.messageEmitter.emit(
+                                    "data",
+                                    JSON.parse(responseData)
+                                );
                             }
 
-                            inData = false;
-                            console.log("DATA:", responseData);
-                            this.messageEmitter.emit("data", responseData);
                             return;
                         }
 
@@ -304,7 +310,7 @@ class ChatGPTConversation {
                 },
             }).catch((err: any) => console.log("err:", err));
         });
-    };
+    }
 }
 
 export default ChatGPTConversation;

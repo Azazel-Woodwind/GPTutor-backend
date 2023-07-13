@@ -1,6 +1,5 @@
 import supabase from "../config/supa";
-import checkUserMessageGuidelines from "../socket/message.handler";
-import ChatGPTConversation, { ChatResponse } from "./ChatGPTConversation";
+import ChatGPTConversation from "./ChatGPTConversation";
 
 import { Socket } from "socket.io";
 

@@ -43,7 +43,7 @@ const generateQuestion = async (
         );
     }
 
-    const { content: question } = await questionGenerator!.generateResponse({
+    const question = await questionGenerator!.generateResponse({
         message: type,
         silent: true,
     });
@@ -161,10 +161,9 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 }),
         });
 
-        const { content: response } =
-            await currentHintGenerator.generateResponse({
-                message: "hint",
-            });
+        const response = await currentHintGenerator.generateResponse({
+            message: "hint",
+        });
 
         // currentHintGenerator.messageEmitter.removeAllListeners(
         //     "generate_audio"
@@ -234,10 +233,9 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 },
             });
 
-            const { content: response } =
-                await currentFeedbackGenerator.generateResponse({
-                    message,
-                });
+            const response = await currentFeedbackGenerator.generateResponse({
+                message,
+            });
 
             console.log("GENERATED FEEDBACK:", response);
             console.log("QUESTION NUMBER IS:", questionIndex);
@@ -288,8 +286,7 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                         }
                     );
 
-                    const { content: answer } =
-                        await answerGenerator.generateResponse();
+                    const answer = await answerGenerator.generateResponse();
 
                     socket.emit("quiz_answer", {
                         answer,

@@ -12,12 +12,13 @@ Learning objectives:
 #2: understand newton's second law
 #3: understand newton's third law
 
-Teach me the lesson according to the provided learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. Do not skip any learning objectives. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
+Teach me the lesson according to the provided learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
 
-Greet me, introduce the lesson, and ask if I'm ready to start. Do not begin teaching me unless I have confirmed that I am ready.
+Greet me, introduce the lesson, and ask if I'm ready to start. Do not start the lesson unless I have confirmed that I am ready.
 
-On the first two lines of every response, always include 2 values. The first value is the number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed. The second value is "true" if the lesson has finished, and "false" otherwise. Always enclose this data between this character: "█". For example:
-█
-2
-false
-█
+At the start of your response, you must include information about your response enclosed in triple quotation marks ("""). This information must be valid JSON and must include the following keys:
+
+learningObjectiveNumber: The number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed.
+finished: 'true' if the lesson has finished, and 'false' otherwise
+
+Do not use triple quotation marks anywhere else in your response.
