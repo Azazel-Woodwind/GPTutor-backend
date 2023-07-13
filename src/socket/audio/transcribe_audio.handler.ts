@@ -42,7 +42,7 @@ const transcribe_audioHandler = (data: ChannelData, socket: Socket) => {
             headers,
         })
         .then(response => {
-            console.log("TRANSCRIBED AUDIO:", response.data.text);
+            // console.log("TRANSCRIBED AUDIO:", response.data.text);
             socket.emit("transcribed_audio", {
                 transcription: response.data.text,
                 final: data.final,

@@ -1,12 +1,21 @@
 import supabase from "../../config/supa";
-import { XSetup, getJsonData } from "../../lib/XUtils";
+import { getConversationData } from "../../lib/XUtils";
 import startLessonSchema from "../schema/start_lesson.schema";
-import { lesson } from "../../lib/GPT4prompts.utils";
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
+import {
+    generateLessonSystemPrompt,
+    lesson,
+} from "../../prompts/lessons.prompts";
+import { XSetup } from "../../lib/socketSetup";
 
 type ChannelData = {
     current_lesson: Lesson;
+};
+
+type LessonResponseData = {
+    learningObjectiveNumber: number;
+    finished: boolean;
 };
 
 const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
@@ -28,17 +37,17 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
     });
 
     const onResponse = async (response: string) => {
-        const data = await getJsonData(
-            lesson.dataPrompt(current_lesson),
-            chat,
-            socket
-        );
-        console.log("DATA:", data);
-
         socket.emit("lesson_response_data", {
-            learningObjectiveNumber: !data ? -1 : data.learningObjectiveNumber,
-            response,
+            response: response,
         });
+    };
+
+    const onResponseData = (data: LessonResponseData) => {
+        console.log("DATA:", data);
+        socket.emit(
+            "lesson_learning_objective_change",
+            data.learningObjectiveNumber
+        );
 
         if (data.finished) {
             socket.emit("lesson_finished", true);
@@ -51,6 +60,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         channel: "lesson",
         onResponse,
         start: true,
+        onResponseData,
     });
 };
 

@@ -1,27 +1,32 @@
 import { EventEmitter } from "events";
 import { fetchSSE } from "./fetch-sse/fetch-sse";
-import GPT3Tokenizer from "gpt3-tokenizer";
 import { findJsonInString } from "./XUtils";
 import supabase from "../config/supa";
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
-
-const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+import { encoding_for_model } from "@dqbd/tiktoken";
+import { generateDataPrompt } from "../prompts/data.prompts";
 
 interface ConstructorParams {
-    systemPrompt: string;
+    systemPrompt?: string;
     chatHistory?: Message[];
     socket: any;
     tokenUsage?: boolean;
 }
 
+const defaultOps = {
+    system: false,
+    silent: false,
+};
+
 class ChatGPTConversation {
     tokenUsage: boolean;
     messageEmitter: EventEmitter;
     socket: Socket;
-    systemPrompt: string;
+    systemPrompt: string | undefined;
     chatHistory: Message[];
     abortController: AbortController | undefined;
+    first: boolean = true;
 
     constructor({
         systemPrompt,
@@ -29,16 +34,28 @@ class ChatGPTConversation {
         socket,
         tokenUsage = true,
     }: ConstructorParams) {
-        this.chatHistory = chatHistory || [
-            { role: "system", content: systemPrompt },
-        ];
+        this.chatHistory =
+            chatHistory ||
+            (systemPrompt ? [{ role: "system", content: systemPrompt! }] : []);
         this.tokenUsage = tokenUsage;
         this.systemPrompt = systemPrompt;
         this.messageEmitter = new EventEmitter();
         this.socket = socket;
-        socket.currentUsage = socket.currentUsage
-            ? socket.currentUsage + tokenizer.encode(systemPrompt).text.length
-            : tokenizer.encode(systemPrompt).text.length;
+        this.first = true;
+    }
+
+    cleanUp() {
+        this.messageEmitter.removeAllListeners();
+        this.abortController?.abort();
+    }
+
+    reset(newSystemPrompt: string) {
+        this.chatHistory = [{ role: "system", content: newSystemPrompt }];
+        this.systemPrompt = newSystemPrompt;
+        // this.socket.currentUsage = this.socket.currentUsage
+        //     ? this.socket.currentUsage +
+        //       tokenizer.encode(newSystemPrompt).text.length
+        //     : tokenizer.encode(newSystemPrompt).text.length;
     }
 
     async getData(dataPrompt?: string) {
@@ -47,13 +64,13 @@ class ChatGPTConversation {
         let count = 0;
         let json;
         do {
-            const { content } = await this.generateChatCompletion(dataPrompt, {
-                system: true,
+            const response = await this.generateChatCompletion({
+                message: dataPrompt,
                 silent: true,
                 temperature: 0,
             });
-            console.log("Json data:", content, "end of json data");
-            json = findJsonInString(content);
+            console.log("Json data:", response, "end of json data");
+            json = findJsonInString(response.content);
 
             count++;
         } while (!json && count < 5);
@@ -86,46 +103,89 @@ class ChatGPTConversation {
         }
     }
 
-    async generateResponse(message?: string, id?: string, first?: boolean) {
+    async generateResponse({
+        message,
+        dataPrompt,
+        ...opts
+    }: {
+        message?: string;
+        dataPrompt?: {
+            definitions: { [key: string]: string };
+            start?: boolean;
+        };
+        [key: string]: any;
+    } = {}): Promise<string> {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
 
-        const response = await this.generateChatCompletion(undefined, {
-            system: false,
-            silent: false,
-            id,
-            first,
+        const response = await this.generateChatCompletion({
+            message,
+            dataPrompt,
+            ...defaultOps,
+            ...opts,
         });
 
         this.chatHistory.push(response);
+        // console.log(JSON.stringify(this.chatHistory, null, 2));
 
         return response.content;
     }
 
-    generateChatCompletion = async (
-        message: string | undefined,
-        opts: any
-    ): Promise<Message> => {
+    private async generateChatCompletion({
+        message,
+        dataPrompt,
+        ...opts
+    }: {
+        message?: string;
+        dataPrompt?: {
+            definitions: { [key: string]: string };
+            start?: boolean;
+        };
+        [key: string]: any;
+    }): Promise<Message> {
+        if (!this.systemPrompt) {
+            throw new Error("System prompt not set");
+        }
+
+        const encoding = encoding_for_model("gpt-3.5-turbo");
+
+        if (this.first) {
+            this.socket.currentUsage = this.socket.currentUsage
+                ? this.socket.currentUsage +
+                  encoding.encode(this.systemPrompt).length
+                : encoding.encode(this.systemPrompt).length;
+
+            this.first = false;
+        }
+
         if (message?.length && this.socket.currentUsage)
-            this.socket.currentUsage += tokenizer.encode(message).text.length;
+            this.socket.currentUsage += encoding.encode(message).length;
+
+        encoding.free();
 
         return new Promise(async (resolve, reject) => {
             const result = {
                 role: "assistant",
                 content: "",
-                delta: "",
-                id: "",
             };
 
             const body = {
-                model: "gpt-3.5-turbo",
+                model: "gpt-4",
                 messages: message
                     ? [
                           ...this.chatHistory,
                           {
                               role: opts.system ? "system" : "user",
-                              content: message,
+                              content:
+                                  message +
+                                  (dataPrompt
+                                      ? `\n${generateDataPrompt({
+                                            definitions:
+                                                dataPrompt!.definitions,
+                                            start: dataPrompt!.start,
+                                        })}`
+                                      : ""),
                           },
                       ]
                     : this.chatHistory,
@@ -144,6 +204,12 @@ class ChatGPTConversation {
             let currentSentence = "";
 
             let counter = 0;
+
+            let inData = false;
+            let first = true;
+            let responseData = "";
+            // let quotationMarkCount = 0;
+            // console.log("HISTORY:", this.chatHistory);
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -151,72 +217,87 @@ class ChatGPTConversation {
                 signal: this.abortController.signal,
                 onMessage: async (data: any) => {
                     if (data === "[DONE]") {
+                        this.messageEmitter.emit("end");
                         result.content = result.content.trim();
                         if (this.tokenUsage) {
+                            console.log(
+                                "SOCKET USAGE:",
+                                this.socket.currentUsage
+                            );
                             await incrementUsage(
                                 this.socket.user!.id,
                                 this.socket.currentUsage!
                             );
                             this.socket.currentUsage = 0;
                         }
-
-                        return resolve({
-                            role: result.role,
-                            content: result.content,
-                        });
+                        console.log("RESPONSE:", result);
+                        return resolve(result);
                     }
 
                     this.socket.currentUsage! += 1;
                     try {
                         const response = JSON.parse(data);
+                        if (!response?.choices?.length) return;
 
-                        if (response.id) result.id = response.id;
+                        const delta = response.choices[0].delta;
 
-                        if (response?.choices?.length) {
-                            const delta = response.choices[0].delta;
-                            result.delta = delta.content;
-                            if (delta?.content) {
-                                result.content += delta.content;
-                            }
+                        if (!delta?.content) return;
 
-                            if (delta.role) {
-                                result.role = delta.role;
-                            }
-
-                            opts?.onProgress?.(result);
-
-                            if (!opts?.silent) {
-                                if (!delta.content) return;
-
-                                currentSentence += delta.content;
-
-                                if (
-                                    delta.content.includes(".") ||
-                                    delta.content.includes("?") ||
-                                    delta.content.includes("!") ||
-                                    delta.content.includes("\n")
-                                ) {
-                                    currentSentence = currentSentence.trim();
-                                    if (currentSentence) {
-                                        this.messageEmitter.emit(
-                                            "generate_audio",
-                                            {
-                                                text: currentSentence,
-                                                order: counter++,
-                                                id: opts.id,
-                                                first: opts.first,
-                                            }
-                                        );
-                                    }
-
-                                    currentSentence = "";
-                                }
-
+                        if (delta.content === '"""') {
+                            if (!inData) {
+                                inData = true;
+                            } else {
+                                inData = false;
+                                console.log("DATA:", responseData);
                                 this.messageEmitter.emit(
-                                    "message",
-                                    delta.content
+                                    "data",
+                                    JSON.parse(responseData)
                                 );
                             }
+
+                            return;
+                        }
+
+                        if (inData) {
+                            responseData += delta.content;
+                            return;
+                        }
+
+                        result.content += delta.content;
+
+                        if (delta.role) {
+                            result.role = delta.role;
+                        }
+
+                        opts?.onProgress?.(result);
+
+                        if (!opts?.silent) {
+                            currentSentence += delta.content;
+
+                            if (
+                                delta.content.includes(".") ||
+                                delta.content.includes("?") ||
+                                delta.content.includes("!") ||
+                                delta.content.includes("\n")
+                            ) {
+                                currentSentence = currentSentence.trim();
+                                if (currentSentence) {
+                                    this.messageEmitter.emit("generate_audio", {
+                                        text: currentSentence,
+                                        order: counter++,
+                                        id: opts.id,
+                                        first: opts.first,
+                                    });
+                                }
+
+                                currentSentence = "";
+                            }
+
+                            this.messageEmitter.emit("message", {
+                                delta: delta.content,
+                                first,
+                            });
+                            first = false;
                         }
                     } catch (err) {
                         console.warn(
@@ -229,7 +310,7 @@ class ChatGPTConversation {
                 },
             }).catch((err: any) => console.log("err:", err));
         });
-    };
+    }
 }
 
 export default ChatGPTConversation;

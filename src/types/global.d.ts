@@ -11,7 +11,7 @@ enum Subject {
     BIOLOGY = "biology",
 }
 
-declare type User = {
+type User = {
     id: string;
     email: string;
     password?: string;
@@ -23,15 +23,16 @@ declare type User = {
     usage_plan: string;
     usage_plans: { max_daily_tokens: number };
     daily_token_usage: number;
+    req_audio_data: boolean;
     user_metadata: any;
 };
 
-declare type Message = {
+type Message = {
     role: string;
     content: string;
 };
 
-declare type WaitingListMember = {
+type WaitingListMember = {
     first_name: string;
     email: string;
     education_level: EducationLevel;
@@ -39,45 +40,46 @@ declare type WaitingListMember = {
     subjects: Subject[];
 };
 
-declare type Image = {
-    link: string;
-    description: string;
-};
-
-declare type LearningObjective = {
-    title: string;
+type LearningObjective = {
     description: string | null;
-    images: Image[];
+    image_link: string | null;
+    image_description: string | null;
+    number: number | null;
 };
 
-declare type Lesson = {
+type Lesson = {
     id: string;
     title: string;
     caption: string;
     subject: Subject;
     education_level: EducationLevel;
     learning_objectives: LearningObjective[];
+    is_published: boolean;
+    author_id: string;
+    is_verified: boolean;
+    created_at: string;
+    exam_boards: string[];
 };
 
-declare type ChatEntry = {
+type ChatEntry = {
     role: string;
     content: string;
 };
 
-declare type ServerToClientEvents = {
+type ServerToClientEvents = {
     noArg: () => void;
     basicEmit: (a: number, b: string, c: Buffer) => void;
     withAck: (d: string, callback: (e: number) => void) => void;
 };
 
-declare type ClientToServerEvents = {
+type ClientToServerEvents = {
     hello: () => void;
 };
 
-declare type InterServerEvents = {
+type InterServerEvents = {
     ping: () => void;
 };
 
-declare type Context = {
+type Context = {
     path: string;
 };

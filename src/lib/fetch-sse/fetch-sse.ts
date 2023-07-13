@@ -13,23 +13,71 @@ export async function fetchSSE(
 ) {
     const { onMessage, ...fetchOptions } = options;
     // console.log(fetch)
-    const res = await fetch(url, fetchOptions);
+    let res: Response | undefined;
+    let count = 0;
+    while (1) {
+        if (count === 3) {
+            throw new Error("ChatGPT error: timeout");
+        }
+        const abortController = new AbortController();
 
-    if (!res.ok) {
-        let reason: string;
-
+        fetchOptions.signal = abortController.signal;
+        const timeout = setTimeout(() => {
+            abortController.abort();
+        }, 4000);
         try {
-            reason = await res.text();
-        } catch (err) {
-            reason = res.statusText;
+            res = await fetch(url, fetchOptions);
+        } catch (error: any) {
+            console.log("FETCH ERROR:", error);
+            console.log("ERROR NAME:", error.name);
+            if (error.name === "AbortError") {
+                console.log("REQUEST TIMEOUT, TRYING AGAIN");
+                count++;
+                continue;
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeout);
         }
 
-        const msg = `ChatGPT error ${res.status}: ${reason}`;
-        const error = new types.ChatGPTError(msg);
-        error.statusCode = res.status;
-        error.statusText = res.statusText;
-        throw error;
+        if (res.ok) {
+            break;
+        }
+
+        if (!res.ok) {
+            let reason: string;
+
+            try {
+                reason = await res.text();
+            } catch (err) {
+                reason = res.statusText;
+            }
+
+            const msg = `ChatGPT error ${res.status}: ${reason}`;
+            const error = new types.ChatGPTError(msg);
+            error.statusCode = res.status;
+            error.statusText = res.statusText;
+            throw error;
+        }
     }
+
+    // const res = await fetch(url, fetchOptions);
+
+    // if (!res.ok) {
+    //     let reason: string;
+
+    //     try {
+    //         reason = await res.text();
+    //     } catch (err) {
+    //         reason = res.statusText;
+    //     }
+
+    //     const msg = `ChatGPT error ${res.status}: ${reason}`;
+    //     const error = new types.ChatGPTError(msg);
+    //     error.statusCode = res.status;
+    //     error.statusText = res.statusText;
+    //     throw error;
+    // }
 
     const parser = createParser(event => {
         if (event.type === "event") {
@@ -37,10 +85,10 @@ export async function fetchSSE(
         }
     });
 
-    if (!res.body?.getReader) {
+    if (!res!.body?.getReader) {
         // Vercel polyfills `fetch` with `node-fetch`, which doesn't conform to
         // web standards, so this is a workaround...
-        const body: NodeJS.ReadableStream = res.body as any;
+        const body: NodeJS.ReadableStream = res!.body as any;
 
         if (!body.on || !body.read) {
             throw new types.ChatGPTError('unsupported "fetch" implementation');
@@ -53,11 +101,13 @@ export async function fetchSSE(
             }
         });
     } else {
-        for await (const chunk of streamAsyncIterable(res.body)) {
+        for await (const chunk of streamAsyncIterable(res!.body)) {
             const str = new TextDecoder().decode(chunk);
             parser.feed(str);
         }
     }
+
+    // console.log("REAL RESPONSE:", res);
 
     return res;
 }

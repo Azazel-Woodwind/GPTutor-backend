@@ -1,6 +1,6 @@
-import { CheckUserGuidelines } from "../lib/GPT4prompts.utils";
 import ChatGPTConversation from "../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
+import { CheckUserGuidelines } from "../prompts/guidelines.prompts";
 
 export async function checkUserMessageGuidelines(
     socket: Socket,

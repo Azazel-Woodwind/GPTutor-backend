@@ -49,7 +49,11 @@ export async function getLessonsHandler(
     res: Response
 ): Promise<Response> {
     try {
-        const { data, error } = await supabase.from("lessons").select();
+        const { data, error } = await supabase
+            .from("lessons")
+            .select(
+                "*, learning_objectives (*), exam_boards (*), author:users (*)"
+            );
 
         if (error) {
             throw error;
@@ -58,68 +62,5 @@ export async function getLessonsHandler(
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));
         return res.status(500).json(error.message);
-    }
-}
-
-export async function createLessonHandler(
-    req: Request<{}, {}, Omit<Lesson, "id">>,
-    res: Response
-): Promise<Response> {
-    try {
-        const { learning_objectives, ...lessonData } = req.body;
-        const { data, error } = await supabase
-            .from("lessons")
-            .insert({
-                ...lessonData,
-                is_published: false,
-                author_id: req.user!.id,
-            })
-            .select();
-
-        if (error) {
-            throw error;
-        }
-
-        for (let learningObjective of learning_objectives) {
-            await createLearningObjective(learningObjective, data[0].id);
-        }
-
-        return res.status(201).json(data);
-    } catch (error: any) {
-        console.log(JSON.stringify(error, null, 2));
-        return res.status(500).json(error.message);
-    }
-}
-
-async function createLearningObjective(
-    learningObjective: LearningObjective,
-    lesson_id: string
-) {
-    const { images, title } = learningObjective;
-    const { data, error } = await supabase
-        .from("learning_objectives")
-        .insert({
-            title,
-            lesson_id,
-        })
-        .select();
-
-    if (error) {
-        throw error;
-    }
-
-    for (let image of images) {
-        await createImage(image, data[0].id);
-    }
-}
-
-async function createImage(image: Image, learning_objective_id: string) {
-    const { error } = await supabase.from("images").insert({
-        ...image,
-        learning_objective_id,
-    });
-
-    if (error) {
-        throw error;
     }
 }

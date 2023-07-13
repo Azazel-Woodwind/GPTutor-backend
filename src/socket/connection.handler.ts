@@ -3,12 +3,48 @@ import startLessonHandler from "./lessons/start_lesson.handler";
 import startChatHandler from "./chat/start_chat.handler";
 import supabase from "../config/supa";
 import { Socket } from "socket.io";
+import start_quiz_handler from "./quiz/start_quiz_handler";
+import { updateSocketUser } from "./middleware/deserialiseUser";
 
 type DataHandler = (data: any, socket: Socket) => void;
 
 const handleConnection = async (socket: Socket) => {
     console.log("Socket connected");
     socket.currentUsage = 0;
+    // console.log("Socket user id", socket.user?.id);
+    const userInfoChannel = supabase
+        .channel(`user-info-${socket.user?.id}`)
+        .on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "public",
+                table: "users",
+                filter: `id=eq.${socket.user?.id}`,
+            },
+            payload => {
+                // console.log("Change received in public.users", payload);
+                updateSocketUser(socket);
+            }
+        )
+        .subscribe();
+
+    const authInfoChannel = supabase
+        .channel(`auth-info-${socket.user?.id}`)
+        .on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "auth",
+                table: "users",
+                filter: `id=eq.${socket.user?.id}`,
+            },
+            payload => {
+                // console.log("Change received in auth.users", payload);
+                updateSocketUser(socket);
+            }
+        )
+        .subscribe();
 
     try {
         const route = (handler: DataHandler) => (data: any) =>
@@ -19,10 +55,14 @@ const handleConnection = async (socket: Socket) => {
         socket.on("start_chat", route(startChatHandler));
         // Lessons API
         socket.on("start_lesson", route(startLessonHandler));
+        // Quiz API
+        socket.on("start_quiz", route(start_quiz_handler));
 
         // On disconnect
         socket.on("disconnect", async reason => {
             console.log("Socket disconnected.", reason);
+            supabase.removeChannel(userInfoChannel);
+            supabase.removeChannel(authInfoChannel);
             const { data, error } = await supabase.rpc("increment_usage", {
                 user_id: socket.user?.id!,
                 delta: socket.currentUsage!,
