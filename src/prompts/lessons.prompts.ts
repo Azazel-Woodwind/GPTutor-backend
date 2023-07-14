@@ -85,6 +85,7 @@ export const generateLessonSystemPrompt = (user: User, lesson: Lesson) => `
 ${lessonIntroduction(user.first_name)}
 ${generateLessonInformation(lesson)}
 ${lessonInstructions}
+${lessonDataPrompt}
 `;
 
 export const lesson = {

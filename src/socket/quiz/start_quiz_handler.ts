@@ -10,6 +10,7 @@ import { getAudioData } from "../../lib/tts.utils";
 import OrderMaintainer from "../../lib/OrderMaintainer";
 import { streamString } from "../../lib/XUtils";
 import { eventEmitterSetup } from "../../lib/socketSetup";
+import { STREAM_END_MESSAGE } from "../../lib/constants";
 
 type ChannelData = {
     lesson: Lesson;
@@ -205,15 +206,105 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
             // });
             let temp = "";
             let isCorrect: undefined | boolean = undefined;
+            let response = "";
             eventEmitterSetup({
                 generateAudio: false,
                 chat: currentFeedbackGenerator,
                 socket,
                 streamChannel: `quiz_feedback_stream`,
+                sendEndMessage: true,
                 // onReceiveAudioData: ({ base64, order }) => {
                 //     audioOrderMaintainer.addData(base64, order);
                 // },
-                onMessage: delta => {
+                onMessage: async delta => {
+                    if (delta === STREAM_END_MESSAGE) {
+                        if (response.startsWith("CORRECT")) {
+                            socket.emit("quiz_new_feedback", {
+                                isCorrect: true,
+                                feedback: response.slice(8),
+                                questionIndex,
+                                choiceIndex,
+                            });
+                        } else {
+                            if (attempts === 4) {
+                                // const message =
+                                //     " Unfortunately, you have no remaining attempts. A modal answer will be provided in the answer box.";
+                                // await streamString(
+                                //     message,
+                                //     socket,
+                                //     `quiz_feedback_stream`,
+                                //     {
+                                //         questionIndex,
+                                //         choiceIndex,
+                                //         isCorrect,
+                                //     }
+                                // );
+                                socket.emit("quiz_new_feedback", {
+                                    isCorrect: false,
+                                    feedback: response.slice(10),
+                                    questionIndex,
+                                    choiceIndex,
+                                    final: true,
+                                });
+                                const answerGenerator = new ChatGPTConversation(
+                                    {
+                                        socket,
+                                        systemPrompt:
+                                            generateQuizAnswerSystemPrompt(
+                                                data.lesson,
+                                                question
+                                            ),
+                                    }
+                                );
+
+                                let answer = "";
+                                eventEmitterSetup({
+                                    chat: answerGenerator,
+                                    socket,
+                                    streamChannel: `quiz_answer_stream`,
+                                    sendEndMessage: true,
+                                    onMessage: async delta => {
+                                        if (delta === STREAM_END_MESSAGE) {
+                                            socket.emit("quiz_answer", {
+                                                answer,
+                                                questionIndex,
+                                            });
+                                            return;
+                                        }
+
+                                        socket.emit("quiz_answer_stream", {
+                                            delta,
+                                            questionIndex,
+                                        });
+                                    },
+                                });
+
+                                // answerGenerator.messageEmitter.on(
+                                //     "message",
+                                //     ({ delta }) => {
+                                //         socket.emit("quiz_answer_stream", {
+                                //             delta,
+                                //             questionIndex,
+                                //         });
+                                //     }
+                                // );
+
+                                answer =
+                                    await answerGenerator.generateResponse();
+                            } else {
+                                socket.emit("quiz_new_feedback", {
+                                    isCorrect: false,
+                                    feedback: response.slice(10),
+                                    questionIndex,
+                                    choiceIndex,
+                                });
+                            }
+                        }
+
+                        currentFeedbackGenerator!.messageEmitter.removeAllListeners();
+                        return;
+                    }
+
                     if (isCorrect === undefined) {
                         temp += delta;
                         if (temp.startsWith("CORRECT")) {
@@ -233,76 +324,13 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 },
             });
 
-            const response = await currentFeedbackGenerator.generateResponse({
+            response = await currentFeedbackGenerator.generateResponse({
                 message,
             });
 
             console.log("GENERATED FEEDBACK:", response);
             console.log("QUESTION NUMBER IS:", questionIndex);
             console.log("CHOICE NUMBER IS:", choiceIndex);
-
-            if (response.startsWith("CORRECT")) {
-                socket.emit("quiz_new_feedback", {
-                    isCorrect: true,
-                    feedback: response.slice(8),
-                    questionIndex,
-                    choiceIndex,
-                });
-            } else {
-                if (attempts === 4) {
-                    const message =
-                        " Unfortunately, you have no remaining attempts. A modal answer will be provided in the answer box.";
-                    await streamString(
-                        message,
-                        socket,
-                        `quiz_feedback_stream`,
-                        {
-                            questionIndex,
-                            choiceIndex,
-                            isCorrect,
-                        }
-                    );
-                    socket.emit("quiz_new_feedback", {
-                        isCorrect: false,
-                        feedback: response.slice(10) + message,
-                        questionIndex,
-                        choiceIndex,
-                    });
-                    const answerGenerator = new ChatGPTConversation({
-                        socket,
-                        systemPrompt: generateQuizAnswerSystemPrompt(
-                            data.lesson,
-                            question
-                        ),
-                    });
-
-                    answerGenerator.messageEmitter.on(
-                        "message",
-                        ({ delta }) => {
-                            socket.emit("quiz_answer_stream", {
-                                delta,
-                                questionIndex,
-                            });
-                        }
-                    );
-
-                    const answer = await answerGenerator.generateResponse();
-
-                    socket.emit("quiz_answer", {
-                        answer,
-                        questionIndex,
-                    });
-                } else {
-                    socket.emit("quiz_new_feedback", {
-                        isCorrect: false,
-                        feedback: response.slice(10),
-                        questionIndex,
-                        choiceIndex,
-                    });
-                }
-            }
-
-            currentFeedbackGenerator.messageEmitter.removeAllListeners();
         }
     );
 

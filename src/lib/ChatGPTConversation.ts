@@ -105,14 +105,14 @@ class ChatGPTConversation {
 
     async generateResponse({
         message,
-        dataPrompt,
+        // dataPrompt,
         ...opts
     }: {
         message?: string;
-        dataPrompt?: {
-            definitions: { [key: string]: string };
-            start?: boolean;
-        };
+        // dataPrompt?: {
+        //     definitions: { [key: string]: string };
+        //     start?: boolean;
+        // };
         [key: string]: any;
     } = {}): Promise<string> {
         await this.checkExceededTokenQuota();
@@ -121,7 +121,7 @@ class ChatGPTConversation {
 
         const response = await this.generateChatCompletion({
             message,
-            dataPrompt,
+            // dataPrompt,
             ...defaultOps,
             ...opts,
         });
@@ -134,14 +134,14 @@ class ChatGPTConversation {
 
     private async generateChatCompletion({
         message,
-        dataPrompt,
+        // dataPrompt,
         ...opts
     }: {
         message?: string;
-        dataPrompt?: {
-            definitions: { [key: string]: string };
-            start?: boolean;
-        };
+        // dataPrompt?: {
+        //     definitions: { [key: string]: string };
+        //     start?: boolean;
+        // };
         [key: string]: any;
     }): Promise<Message> {
         if (!this.systemPrompt) {
@@ -177,21 +177,14 @@ class ChatGPTConversation {
                           ...this.chatHistory,
                           {
                               role: opts.system ? "system" : "user",
-                              content:
-                                  message +
-                                  (dataPrompt
-                                      ? `\n${generateDataPrompt({
-                                            definitions:
-                                                dataPrompt!.definitions,
-                                            start: dataPrompt!.start,
-                                        })}`
-                                      : ""),
+                              content: message,
                           },
                       ]
                     : this.chatHistory,
                 stream: true,
                 temperature: opts.temperature || 0.7,
             };
+
             const headers = {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -208,6 +201,7 @@ class ChatGPTConversation {
             let inData = false;
             let first = true;
             let responseData = "";
+            let fullResponse = "";
             // let quotationMarkCount = 0;
             // console.log("HISTORY:", this.chatHistory);
             fetchSSE(url, {
@@ -220,10 +214,10 @@ class ChatGPTConversation {
                         this.messageEmitter.emit("end");
                         result.content = result.content.trim();
                         if (this.tokenUsage) {
-                            console.log(
-                                "SOCKET USAGE:",
-                                this.socket.currentUsage
-                            );
+                            // console.log(
+                            //     "SOCKET USAGE:",
+                            //     this.socket.currentUsage
+                            // );
                             await incrementUsage(
                                 this.socket.user!.id,
                                 this.socket.currentUsage!
@@ -231,6 +225,7 @@ class ChatGPTConversation {
                             this.socket.currentUsage = 0;
                         }
                         console.log("RESPONSE:", result);
+                        console.log("FULL RESPONSE:", fullResponse);
                         return resolve(result);
                     }
 
@@ -243,7 +238,11 @@ class ChatGPTConversation {
 
                         if (!delta?.content) return;
 
-                        if (delta.content === '"""') {
+                        fullResponse += delta.content;
+
+                        // console.log("DELTA:", delta.content);
+
+                        if (delta.content.trim() === '"""') {
                             if (!inData) {
                                 inData = true;
                             } else {

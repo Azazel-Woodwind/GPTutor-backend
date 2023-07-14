@@ -3,6 +3,7 @@ import ChatGPTConversation from "./ChatGPTConversation";
 import DelayedBuffer from "./DelayedBuffer";
 import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
+import { STREAM_END_MESSAGE, STREAM_SPEED } from "./constants";
 
 export async function eventEmitterSetup({
     chat,
@@ -26,13 +27,12 @@ export async function eventEmitterSetup({
     delay?: number;
     generateAudio?: boolean;
 }) {
-    const speed = 20;
     const buffer = new DelayedBuffer(
         async (delta: string) => {
             onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
         },
         delay,
-        speed
+        STREAM_SPEED
     );
 
     chat.messageEmitter.on("message", ({ delta, first }) => {
@@ -53,8 +53,7 @@ export async function eventEmitterSetup({
 
     if (sendEndMessage) {
         chat.messageEmitter.on("end", () => {
-            const endString = "[END]";
-            buffer.addData(endString);
+            buffer.addData(STREAM_END_MESSAGE);
         });
     }
 
