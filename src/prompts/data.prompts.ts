@@ -13,5 +13,10 @@ ${Object.entries(definitions)
     .map(([key, value]) => `${key}: ${value}`)
     .join("\n")}
 
+For example:
+"""
+(Your JSON data here)
+"""
+
 Do not use triple quotation marks anywhere else in your response.
 `;

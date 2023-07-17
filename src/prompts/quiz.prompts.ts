@@ -85,7 +85,7 @@ Here is a ${lesson.education_level} ${
     lesson.subject
 } exam question from the ${commaSeparate(lesson.exam_boards)} exam boards.
 
-${question}
+"${question}"
 
-Respond with a fully correct answer to this question. Ensure this answer stays within the scope of the education level and exam boards.
+Respond with a fully correct, yet concise and succinct answer to this question. Ensure this answer stays within the scope of the education level and exam boards.
 `;

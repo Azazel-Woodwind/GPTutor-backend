@@ -79,6 +79,9 @@ const generateQuestion = async (
 
 const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
     console.log("received connection to start_quiz");
+
+    data.lesson.learning_objectives.sort((a, b) => a.number - b.number);
+
     // console.log("lesson: ", data.lesson);
     let currentQuestionNumber = 0;
     let currentQuestion = "";

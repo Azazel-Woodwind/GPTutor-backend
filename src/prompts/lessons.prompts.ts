@@ -31,7 +31,7 @@ ${formatLearningObjectives(
 export const dataSeparator = "█";
 
 const lessonInstructions = `
-Teach me the lesson according to the provided learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
+Teach me the lesson, covering all learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
 
 Greet me, introduce the lesson, and ask if I'm ready to start. Please do not begin teaching me unless I have confirmed that I am ready.`;
 
@@ -72,8 +72,9 @@ You must respond with ONLY a JSON object with two keys: 'learningObjectiveNumber
 export const lessonDataPrompt = generateDataPrompt({
     definitions: {
         learningObjectiveNumber:
-            "The number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed.",
-        finished: "'true' if the lesson has finished, and 'false' otherwise",
+            "The number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed. This is a number value.",
+        finished:
+            "'true' if the lesson has finished, and 'false' otherwise. This is a boolean value.",
     },
     start: true,
 });

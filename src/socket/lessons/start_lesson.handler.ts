@@ -42,14 +42,14 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         });
     };
 
-    const onResponseData = (data: LessonResponseData) => {
+    const onResponseData = (data: any) => {
         console.log("DATA:", data);
         socket.emit(
             "lesson_learning_objective_change",
             data.learningObjectiveNumber
         );
 
-        if (data.finished) {
+        if (data.finished === true || data.finished === "true") {
             socket.emit("lesson_finished", true);
         }
     };
