@@ -35,7 +35,7 @@ Lessons menu, route: "/lessons" - List of lessons, sortable by subject, educatio
 `;
 
 const chatIntroduction = (first_name: string) =>
-    `Your name is "X", you are my tutor. I am your student named ${first_name}. You are here to help me with anything related to education.`;
+    `Your name is "X", you are my tutor. I am your student named ${first_name}. You are here to help me with anything related to education. Greet me kindly and ask if I need any help with anything.`;
 
 const generateConversationSystemPrompt = (
     user: User,
