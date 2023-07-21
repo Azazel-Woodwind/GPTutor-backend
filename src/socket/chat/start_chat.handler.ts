@@ -125,6 +125,7 @@ const start_chatHandler = (data: any, socket: Socket) => {
             onMessageX,
             handleError,
             start: process.env.KAI !== "true",
+            // start: true,
         });
     }
 };

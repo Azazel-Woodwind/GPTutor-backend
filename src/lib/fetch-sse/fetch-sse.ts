@@ -13,11 +13,11 @@ export async function fetchSSE(
     fetch: types.FetchFn = globalFetch
 ) {
     const { onMessage, ...fetchOptions } = options;
-    console.log(fetchOptions);
-    fs.writeFileSync(
-        "/tmp/fetchOptions.json",
-        JSON.stringify(fetchOptions, null, 2)
-    );
+    // console.log(fetchOptions);
+    // fs.writeFileSync(
+    //     "/tmp/fetchOptions.json",
+    //     JSON.stringify(fetchOptions, null, 2)
+    // );
     let res: Response | undefined;
     let count = 0;
     while (1) {
