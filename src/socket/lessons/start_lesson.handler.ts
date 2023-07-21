@@ -36,20 +36,31 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         socket,
     });
 
+    // console.log("SYSTEM PROMPT:", chat.systemPrompt);
+
     const onResponse = async (response: string) => {
         socket.emit("lesson_response_data", {
             response: response,
         });
     };
 
-    const onResponseData = (data: LessonResponseData) => {
+    const onResponseData = (data: any) => {
         console.log("DATA:", data);
-        socket.emit(
-            "lesson_learning_objective_change",
-            data.learningObjectiveNumber
-        );
+        if (data.instruction) {
+            let [learningObjectiveIndex, instructionIndex] = data.instruction
+                .toString()
+                .split(".");
+            learningObjectiveIndex = parseInt(learningObjectiveIndex);
+            instructionIndex = parseInt(instructionIndex);
+            learningObjectiveIndex--;
+            instructionIndex--;
+            socket.emit("instruction_change", {
+                learningObjectiveIndex,
+                instructionIndex,
+            });
+        }
 
-        if (data.finished) {
+        if (data.finished === true || data.finished === "true") {
             socket.emit("lesson_finished", true);
         }
     };

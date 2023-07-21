@@ -1,12 +1,33 @@
 import { formatChat } from "../lib/XUtils";
 import { generateDataPrompt } from "./data.prompts";
 
+const formatLearningObjective = (
+    learningObjective: LearningObjective,
+    index: number
+) =>
+    `
+#${index + 1}: ${learningObjective.description}
+\tINSTRUCTIONS:
+${learningObjective.instructions
+    .sort((a, b) => (a.number && b.number ? a.number - b.number : 0))
+    .map(
+        ({ instruction }, instructionIndex) => `
+\t${index + 1}.${instructionIndex + 1}: ${instruction}
+`
+    )
+    .join("\n")}
+`;
+
 const formatLearningObjectives = (learningObjectives: LearningObjective[]) =>
     learningObjectives
-        .map(({ description }, index) => `#${index + 1}: ${description}`)
+        .sort((a, b) => (a.number && b.number ? a.number - b.number : 0))
+        .map((learningObjective, index) =>
+            formatLearningObjective(learningObjective, index)
+        )
         .join("\n");
 
 const generateLessonInformation = (lesson: Partial<Lesson>) => {
+    console.log(JSON.stringify(lesson, null, 4));
     const lessonData = `
 Title: ${lesson.title}
 Subject: ${lesson.subject}
@@ -14,14 +35,10 @@ Education Level: ${lesson.education_level}
     `;
 
     return `
-Lesson information:
+You are teaching me this lesson:
 ${lessonData}
 Learning objectives:
-${formatLearningObjectives(
-    lesson.learning_objectives!.sort((a, b) =>
-        a.number && b.number ? a.number - b.number : 0
-    )
-)}
+${formatLearningObjectives(lesson.learning_objectives!)}
 `;
 };
 
@@ -31,9 +48,25 @@ ${formatLearningObjectives(
 export const dataSeparator = "█";
 
 const lessonInstructions = `
-Teach me the lesson according to the provided learning objectives, starting from #1. As you teach me, engage me with helpful examples and check my understanding after each response with at least one thought provoking question. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
+Teach each learning objective by following each of its instructions in order, starting from #1. Your responses should follow multiple instructions where appropriate. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
 
-Greet me, introduce the lesson, and ask if I'm ready to start. Please do not begin teaching me unless I have confirmed that I am ready.`;
+When transitioning between instructions, you must indicate this with valid JSON enclosed in triple quotations marks ("""), with the key "instruction". For example:
+"""
+{
+    "instruction": 1.1
+}
+"""
+This can be anywhere in a response and can appear multiple times in one prompt.
+
+When the lesson has ended, you must indicate this with valid JSON enclosed in triple quotations marks ("""), with the key "finished". For example:
+"""
+{
+    "finished": true
+}
+"""
+
+Greet me, briefly introduce the lesson, and ask if I'm ready to start. Do not start the lesson unless I have confirmed that I am ready.
+`;
 
 const dataInstructions = `
 On the first two lines of every response, always include 2 values. The first value is the number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed. The second value is "true" if the lesson has finished, and "false" otherwise. Always enclose this data between this character: "${dataSeparator}". For example:
@@ -72,8 +105,9 @@ You must respond with ONLY a JSON object with two keys: 'learningObjectiveNumber
 export const lessonDataPrompt = generateDataPrompt({
     definitions: {
         learningObjectiveNumber:
-            "The number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed.",
-        finished: "'true' if the lesson has finished, and 'false' otherwise",
+            "The number of the learning objective you are teaching in the response. This should be -1 if the lesson has not started or no learning objective is being discussed. This is a number value.",
+        finished:
+            "'true' if the lesson has finished, and 'false' otherwise. This is a boolean value.",
     },
     start: true,
 });

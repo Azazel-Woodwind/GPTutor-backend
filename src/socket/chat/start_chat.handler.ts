@@ -97,7 +97,6 @@ const start_chatHandler = (data: any, socket: Socket) => {
 
             socket.removeAllListeners(`chat_message_x`);
             socket.removeAllListeners(`chat_moved_to_lessons`);
-
             XSetup({
                 chat,
                 socket,
@@ -105,7 +104,7 @@ const start_chatHandler = (data: any, socket: Socket) => {
                 onResponse,
                 onMessageX,
                 handleError,
-                start: false,
+                start: process.env.KAI !== "true",
             });
         });
 
@@ -125,7 +124,7 @@ const start_chatHandler = (data: any, socket: Socket) => {
             onResponse,
             onMessageX,
             handleError,
-            start: true,
+            start: process.env.KAI !== "true",
         });
     }
 };

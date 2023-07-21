@@ -105,14 +105,14 @@ class ChatGPTConversation {
 
     async generateResponse({
         message,
-        dataPrompt,
+        // dataPrompt,
         ...opts
     }: {
         message?: string;
-        dataPrompt?: {
-            definitions: { [key: string]: string };
-            start?: boolean;
-        };
+        // dataPrompt?: {
+        //     definitions: { [key: string]: string };
+        //     start?: boolean;
+        // };
         [key: string]: any;
     } = {}): Promise<string> {
         await this.checkExceededTokenQuota();
@@ -121,12 +121,15 @@ class ChatGPTConversation {
 
         const response = await this.generateChatCompletion({
             message,
-            dataPrompt,
+            // dataPrompt,
             ...defaultOps,
             ...opts,
         });
 
-        this.chatHistory.push(response);
+        this.chatHistory.push({
+            role: response.role,
+            content: response.rawContent!,
+        });
         // console.log(JSON.stringify(this.chatHistory, null, 2));
 
         return response.content;
@@ -134,17 +137,17 @@ class ChatGPTConversation {
 
     private async generateChatCompletion({
         message,
-        dataPrompt,
+        // dataPrompt,
         ...opts
     }: {
         message?: string;
-        dataPrompt?: {
-            definitions: { [key: string]: string };
-            start?: boolean;
-        };
+        // dataPrompt?: {
+        //     definitions: { [key: string]: string };
+        //     start?: boolean;
+        // };
         [key: string]: any;
     }): Promise<Message> {
-        if (!this.systemPrompt) {
+        if (this.systemPrompt === undefined) {
             throw new Error("System prompt not set");
         }
 
@@ -168,6 +171,7 @@ class ChatGPTConversation {
             const result = {
                 role: "assistant",
                 content: "",
+                rawContent: "",
             };
 
             const body = {
@@ -177,21 +181,14 @@ class ChatGPTConversation {
                           ...this.chatHistory,
                           {
                               role: opts.system ? "system" : "user",
-                              content:
-                                  message +
-                                  (dataPrompt
-                                      ? `\n${generateDataPrompt({
-                                            definitions:
-                                                dataPrompt!.definitions,
-                                            start: dataPrompt!.start,
-                                        })}`
-                                      : ""),
+                              content: message,
                           },
                       ]
                     : this.chatHistory,
                 stream: true,
-                temperature: opts.temperature || 0.7,
+                temperature: opts.temperature || 1,
             };
+
             const headers = {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -208,8 +205,7 @@ class ChatGPTConversation {
             let inData = false;
             let first = true;
             let responseData = "";
-            // let quotationMarkCount = 0;
-            // console.log("HISTORY:", this.chatHistory);
+            let fullResponse = "";
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -219,11 +215,12 @@ class ChatGPTConversation {
                     if (data === "[DONE]") {
                         this.messageEmitter.emit("end");
                         result.content = result.content.trim();
+                        result.rawContent = fullResponse;
                         if (this.tokenUsage) {
-                            console.log(
-                                "SOCKET USAGE:",
-                                this.socket.currentUsage
-                            );
+                            // console.log(
+                            //     "SOCKET USAGE:",
+                            //     this.socket.currentUsage
+                            // );
                             await incrementUsage(
                                 this.socket.user!.id,
                                 this.socket.currentUsage!
@@ -231,6 +228,7 @@ class ChatGPTConversation {
                             this.socket.currentUsage = 0;
                         }
                         console.log("RESPONSE:", result);
+                        console.log("FULL RESPONSE:", fullResponse);
                         return resolve(result);
                     }
 
@@ -243,7 +241,11 @@ class ChatGPTConversation {
 
                         if (!delta?.content) return;
 
-                        if (delta.content === '"""') {
+                        fullResponse += delta.content;
+
+                        // console.log("DELTA:", delta.content);
+
+                        if (delta.content.trim() === '"""') {
                             if (!inData) {
                                 inData = true;
                             } else {
@@ -253,6 +255,7 @@ class ChatGPTConversation {
                                     "data",
                                     JSON.parse(responseData)
                                 );
+                                responseData = "";
                             }
 
                             return;

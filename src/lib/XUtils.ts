@@ -6,6 +6,7 @@ import { Socket } from "socket.io";
 import { encoding_for_model } from "@dqbd/tiktoken";
 import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
+import { STREAM_END_MESSAGE, STREAM_SPEED } from "./constants";
 
 export async function exceededTokenQuota(id: string, limit: number) {
     const { data: user, error } = await supabase
@@ -161,9 +162,9 @@ export async function streamChatResponse({
                 currentSentence = "";
             }
             socket.emit(streamChannel, token);
-            await new Promise(resolve => setTimeout(resolve, 35));
+            await new Promise(resolve => setTimeout(resolve, STREAM_SPEED));
         }
-        socket.emit(streamChannel, "[END]");
+        socket.emit(streamChannel, STREAM_END_MESSAGE);
 
         socket.emit("chat_response_data", {
             response: string,
