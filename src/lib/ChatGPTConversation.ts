@@ -126,7 +126,10 @@ class ChatGPTConversation {
             ...opts,
         });
 
-        this.chatHistory.push(response);
+        this.chatHistory.push({
+            role: response.role,
+            content: response.rawContent!,
+        });
         // console.log(JSON.stringify(this.chatHistory, null, 2));
 
         return response.content;
@@ -144,7 +147,7 @@ class ChatGPTConversation {
         // };
         [key: string]: any;
     }): Promise<Message> {
-        if (!this.systemPrompt) {
+        if (this.systemPrompt === undefined) {
             throw new Error("System prompt not set");
         }
 
@@ -168,6 +171,7 @@ class ChatGPTConversation {
             const result = {
                 role: "assistant",
                 content: "",
+                rawContent: "",
             };
 
             const body = {
@@ -182,7 +186,7 @@ class ChatGPTConversation {
                       ]
                     : this.chatHistory,
                 stream: true,
-                temperature: opts.temperature || 0.7,
+                temperature: opts.temperature || 1,
             };
 
             const headers = {
@@ -202,8 +206,6 @@ class ChatGPTConversation {
             let first = true;
             let responseData = "";
             let fullResponse = "";
-            // let quotationMarkCount = 0;
-            // console.log("HISTORY:", this.chatHistory);
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -213,6 +215,7 @@ class ChatGPTConversation {
                     if (data === "[DONE]") {
                         this.messageEmitter.emit("end");
                         result.content = result.content.trim();
+                        result.rawContent = fullResponse;
                         if (this.tokenUsage) {
                             // console.log(
                             //     "SOCKET USAGE:",
@@ -252,6 +255,7 @@ class ChatGPTConversation {
                                     "data",
                                     JSON.parse(responseData)
                                 );
+                                responseData = "";
                             }
 
                             return;

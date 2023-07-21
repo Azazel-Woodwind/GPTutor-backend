@@ -28,8 +28,13 @@ export async function eventEmitterSetup({
     generateAudio?: boolean;
 }) {
     const buffer = new DelayedBuffer(
-        async (delta: string) => {
-            onMessage ? onMessage(delta) : socket.emit(streamChannel, delta);
+        async (data: any) => {
+            if (typeof data !== "string") {
+                onResponseData && onResponseData(data);
+                return;
+            }
+
+            onMessage ? onMessage(data) : socket.emit(streamChannel, data);
         },
         delay,
         STREAM_SPEED
@@ -48,7 +53,9 @@ export async function eventEmitterSetup({
     });
 
     if (onResponseData) {
-        chat.messageEmitter.on("data", onResponseData);
+        chat.messageEmitter.on("data", data => {
+            buffer.addData(data);
+        });
     }
 
     if (sendEndMessage) {

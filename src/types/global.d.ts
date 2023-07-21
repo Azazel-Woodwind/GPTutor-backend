@@ -30,6 +30,7 @@ type User = {
 type Message = {
     role: string;
     content: string;
+    rawContent?: string;
 };
 
 type WaitingListMember = {
@@ -40,11 +41,16 @@ type WaitingListMember = {
     subjects: Subject[];
 };
 
+type Instruction = {
+    instruction: string;
+    media_link: string | null;
+    number: number;
+};
+
 type LearningObjective = {
     description: string | null;
-    image_link: string | null;
-    image_description: string | null;
     number: number;
+    instructions: Instruction[];
 };
 
 type Lesson = {

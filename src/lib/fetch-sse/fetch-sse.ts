@@ -3,6 +3,7 @@ import { createParser } from "eventsource-parser";
 import * as types from "./types";
 import { fetch as globalFetch } from "./fetch";
 import { streamAsyncIterable } from "./stream-async-iterable";
+import fs from "fs";
 
 export async function fetchSSE(
     url: string,
@@ -12,7 +13,11 @@ export async function fetchSSE(
     fetch: types.FetchFn = globalFetch
 ) {
     const { onMessage, ...fetchOptions } = options;
-    // console.log(fetch)
+    console.log(fetchOptions);
+    fs.writeFileSync(
+        "/tmp/fetchOptions.json",
+        JSON.stringify(fetchOptions, null, 2)
+    );
     let res: Response | undefined;
     let count = 0;
     while (1) {
