@@ -40,44 +40,31 @@ export async function eventEmitterSetup({
         STREAM_SPEED
     );
 
-    chat.messageEmitter.on("message", ({ delta, first }) => {
-        if (delta) {
-            if (first) {
-                buffer.reset();
-            }
-            // buffer.addData(delta);
-            for (const char of delta) {
-                buffer.addData(char);
-            }
-        }
+    chat.messageEmitter.on("sentence", data => {
+        if (!socket.user?.req_audio_data) return;
+        getAudioData(data.text)
+            .then(audioData => {
+                onReceiveAudioData &&
+                    onReceiveAudioData({
+                        ...audioData,
+                        ...data,
+                        type: "sentence",
+                    });
+            })
+            .catch(err => console.log(err));
     });
 
-    if (onResponseData) {
-        chat.messageEmitter.on("data", data => {
-            buffer.addData(data);
-        });
-    }
+    chat.messageEmitter.on("delta", data => {
+        onReceiveAudioData && onReceiveAudioData({ ...data, type: "delta" });
+    });
 
-    if (sendEndMessage) {
-        chat.messageEmitter.on("end", () => {
-            buffer.addData(STREAM_END_MESSAGE);
-        });
-    }
+    chat.messageEmitter.on("data", data => {
+        onReceiveAudioData && onReceiveAudioData({ ...data, type: "data" });
+    });
 
-    if (generateAudio) {
-        chat.messageEmitter.on(
-            "generate_audio",
-            ({ text, order, id, first }) => {
-                if (!socket.user?.req_audio_data) return;
-                getAudioData(text)
-                    .then(base64 => {
-                        onReceiveAudioData &&
-                            onReceiveAudioData({ base64, order, id, first });
-                    })
-                    .catch(err => console.log(err));
-            }
-        );
-    }
+    chat.messageEmitter.on("end", data => {
+        onReceiveAudioData && onReceiveAudioData({ ...data, type: "end" });
+    });
 }
 
 type ContinueConversationParams = {
@@ -111,13 +98,14 @@ type XSetupParams = {
 
 export async function XSetup(params: XSetupParams) {
     const { chat, socket, channel, onMessageX, start, onResponseData } = params;
-    const delay = 700;
+    const delay = 0;
 
     let currentResponseId: undefined | string = undefined;
 
     const orderMaintainer = new OrderMaintainer({
         callback: (data: any) => {
-            socket.emit(`${channel}_audio_data`, data);
+            // socket.emit(`${channel}_audio_data`, data);
+            socket.emit(`${channel}_instruction`, data);
         },
     });
 
@@ -128,19 +116,11 @@ export async function XSetup(params: XSetupParams) {
         dataChannel: `${channel}_data`,
         sendEndMessage: true,
         onResponseData,
-        onReceiveAudioData: ({ base64, order, id, first }) => {
-            if (!first && id !== currentResponseId) return;
+        onReceiveAudioData: data => {
+            if (!data.first && data.id !== currentResponseId) return;
 
             // console.log("CONVERTED TO SPEECH DATA:", text);
-            orderMaintainer.addData(
-                {
-                    audio: base64,
-                    first,
-                    id,
-                    order,
-                },
-                order
-            );
+            orderMaintainer.addData(data, data.order);
         },
         delay,
     });
@@ -188,6 +168,7 @@ export async function continueConversation({
             id: currentResponseId,
             first,
             temperature: 1,
+            audio: true,
         });
         onResponse && onResponse(response, first);
     } catch (error) {

@@ -13,7 +13,8 @@ import { getAudioData } from "../../lib/tts.utils";
 import OrderMaintainer from "../../lib/OrderMaintainer";
 import { streamString } from "../../lib/XUtils";
 import { eventEmitterSetup } from "../../lib/socketSetup";
-import { STREAM_END_MESSAGE } from "../../lib/constants";
+import { STREAM_END_MESSAGE, STREAM_SPEED } from "../../lib/constants";
+import DelayedBuffer from "../../lib/DelayedBuffer";
 
 type ChannelData = {
     lesson: Lesson;
@@ -98,6 +99,8 @@ const solveQuestion = async ({
         message: question,
     });
 
+    console.log("SOLVED QUESTION:", solution);
+
     return solution;
 };
 
@@ -112,6 +115,8 @@ const generateAnalysis = async ({
     studentSolution: string;
     socket: Socket;
 }) => {
+    console.log("GENERATING ANALYSIS");
+
     const analysisGenerator = new ChatGPTConversation({
         socket,
         systemPrompt: generateAnalysisSystemPrompt,
@@ -125,7 +130,15 @@ const generateAnalysis = async ({
         }),
     });
 
+    console.log("GENERATED ANALYSIS:", analysis);
+
     return analysis;
+};
+
+type Question = {
+    question: string;
+    solution?: string;
+    solvingQuestion: boolean;
 };
 
 const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
@@ -144,8 +157,7 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
     let currentHintGenerator: ChatGPTConversation | undefined;
     // let nextHintGenerator: ChatGPTConversation | undefined;
     let attempts = 0;
-    let solvingQuestion = false;
-    let currentSolution = "";
+    const questions: Question[] = [];
 
     socket.on("quiz_change_question", async () => {
         console.log("CHANGING QUESTION");
@@ -157,21 +169,26 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
 
     socket.on("quiz_generate_next_question", async () => {
         console.log("GENERATING NEXT QUESTION");
+        const questionNumber = currentQuestionNumber++;
         const question = await generateQuestion(
             socket,
-            currentQuestionNumber++,
+            questionNumber,
             questionGenerator,
             data.lesson
         );
 
-        solvingQuestion = true;
+        questions[questionNumber] = {
+            question,
+            solvingQuestion: true,
+        };
 
-        currentSolution = await solveQuestion({
+        const solution = await solveQuestion({
             socket,
             question,
         });
 
-        solvingQuestion = false;
+        questions[questionNumber].solvingQuestion = false;
+        questions[questionNumber].solution = solution;
     });
 
     socket.on("quiz_exit", () => {
@@ -250,7 +267,10 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
             // only generate feedback if the question has been solved by GPT-4
             await new Promise<void>(resolve => {
                 const interval = setInterval(() => {
-                    if (!solvingQuestion) {
+                    if (
+                        questions[questionIndex].solvingQuestion === false &&
+                        questions[questionIndex].solution
+                    ) {
                         clearInterval(interval);
                         resolve();
                     }
@@ -265,7 +285,7 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                         systemPrompt: generateFeedbackSystemPrompt(
                             data.lesson,
                             question,
-                            currentSolution,
+                            questions[questionIndex].solution!,
                             choiceIndex !== undefined
                         ),
                     });
@@ -274,7 +294,7 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                         generateFeedbackSystemPrompt(
                             data.lesson,
                             question,
-                            currentSolution,
+                            questions[questionIndex].solution!,
                             choiceIndex !== undefined
                         )
                     );
@@ -289,16 +309,8 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
             let temp = "";
             let isCorrect: undefined | boolean = undefined;
             let response = "";
-            eventEmitterSetup({
-                generateAudio: false,
-                chat: currentFeedbackGenerator,
-                socket,
-                streamChannel: `quiz_feedback_stream`,
-                sendEndMessage: true,
-                // onReceiveAudioData: ({ base64, order }) => {
-                //     audioOrderMaintainer.addData(base64, order);
-                // },
-                onMessage: async delta => {
+            const buffer = new DelayedBuffer(
+                async (delta: string) => {
                     if (delta === STREAM_END_MESSAGE) {
                         if (response.startsWith("CORRECT")) {
                             socket.emit("quiz_new_feedback", {
@@ -361,16 +373,6 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                                     },
                                 });
 
-                                // answerGenerator.messageEmitter.on(
-                                //     "message",
-                                //     ({ delta }) => {
-                                //         socket.emit("quiz_answer_stream", {
-                                //             delta,
-                                //             questionIndex,
-                                //         });
-                                //     }
-                                // );
-
                                 answer =
                                     await answerGenerator.generateResponse();
                             } else {
@@ -404,14 +406,51 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                         isCorrect,
                     });
                 },
+                0,
+                STREAM_SPEED
+            );
+
+            currentFeedbackGenerator.messageEmitter.on("end", () => {
+                buffer.addData(STREAM_END_MESSAGE);
             });
+
+            currentFeedbackGenerator.messageEmitter.on(
+                "delta",
+                ({ delta, first }) => {
+                    if (delta) {
+                        if (first) {
+                            buffer.reset();
+                        }
+                        // buffer.addData(delta);
+                        for (const char of delta) {
+                            buffer.addData(char);
+                        }
+                    }
+                }
+            );
+
+            // eventEmitterSetup({
+            //     generateAudio: false,
+            //     chat: currentFeedbackGenerator,
+            //     socket,
+            //     streamChannel: `quiz_feedback_stream`,
+            //     sendEndMessage: true,
+            //     // onReceiveAudioData: ({ base64, order }) => {
+            //     //     audioOrderMaintainer.addData(base64, order);
+            //     // },
+            //     onMessage: async delta => {
+
+            //     },
+            // });
 
             const analysis = await generateAnalysis({
                 question,
-                solution: currentSolution,
+                solution: questions[questionIndex].solution!,
                 studentSolution: message,
                 socket,
             });
+
+            console.log(currentFeedbackGenerator.systemPrompt);
 
             response = await currentFeedbackGenerator.generateResponse({
                 message: generateFeedbackMessage(message, analysis),

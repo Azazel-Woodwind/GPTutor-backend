@@ -28,6 +28,10 @@ type Request = {
     };
 };
 
+const sampleRate = 24000; // Replace this with your actual sample rate
+const bitDepth = 16; // Replace this with your actual bit depth
+const bytesPerSample = bitDepth / 8;
+
 export async function getAudioData(text: string) {
     const request: Request = {
         audioConfig: {
@@ -53,10 +57,19 @@ export async function getAudioData(text: string) {
         throw new Error("No audio content found");
     }
 
+    if (typeof response.audioContent === "string") {
+        throw new Error("Audio content is a string");
+    }
+
+    const totalSamples = response.audioContent.length / bytesPerSample;
+    const durationInSeconds = totalSamples / sampleRate;
+
+    // console.log(typeof response.audioContent === "string");
+
     // @ts-ignore
     // the "base64" argument causes a compilation error but it is needed and works.
     // no idea why its not a valid argument
     const base64 = response.audioContent.toString("base64");
 
-    return base64;
+    return { audioContent: base64, duration: durationInSeconds };
 }

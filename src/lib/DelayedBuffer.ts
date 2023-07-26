@@ -6,7 +6,7 @@ class DelayedBuffer {
 
     constructor(
         private callback: (data: string) => Promise<void>,
-        private delay: number,
+        private delay: number = 0,
         private speed: number = 0
     ) {}
 

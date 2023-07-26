@@ -17,6 +17,8 @@ interface ConstructorParams {
 const defaultOps = {
     system: false,
     silent: false,
+    audio: false,
+    temperature: 0.7,
 };
 
 class ChatGPTConversation {
@@ -176,18 +178,12 @@ class ChatGPTConversation {
 
             const body = {
                 model: "gpt-4",
-                messages: message
-                    ? [
-                          ...this.chatHistory,
-                          {
-                              role: opts.system ? "system" : "user",
-                              content: message,
-                          },
-                      ]
-                    : this.chatHistory,
+                messages: this.chatHistory,
                 stream: true,
                 temperature: opts.temperature || 1,
             };
+
+            console.log("BODY MESSAGES:", body.messages);
 
             const headers = {
                 "Content-Type": "application/json",
@@ -213,7 +209,11 @@ class ChatGPTConversation {
                 signal: this.abortController.signal,
                 onMessage: async (data: any) => {
                     if (data === "[DONE]") {
-                        this.messageEmitter.emit("end");
+                        this.messageEmitter.emit("end", {
+                            order: counter++,
+                            id: opts.id,
+                            first: opts.first,
+                        });
                         result.content = result.content.trim();
                         result.rawContent = fullResponse;
                         if (this.tokenUsage) {
@@ -251,10 +251,12 @@ class ChatGPTConversation {
                             } else {
                                 inData = false;
                                 console.log("DATA:", responseData);
-                                this.messageEmitter.emit(
-                                    "data",
-                                    JSON.parse(responseData)
-                                );
+                                this.messageEmitter.emit("data", {
+                                    ...JSON.parse(responseData),
+                                    order: counter++,
+                                    id: opts.id,
+                                    first: opts.first,
+                                });
                                 responseData = "";
                             }
 
@@ -275,33 +277,43 @@ class ChatGPTConversation {
                         opts?.onProgress?.(result);
 
                         if (!opts?.silent) {
-                            currentSentence += delta.content;
+                            if (opts.audio) {
+                                if (!this.socket.user?.req_audio_data) {
+                                    this.messageEmitter.emit("delta", {
+                                        delta: currentSentence + delta.content,
+                                        order: counter++,
+                                        id: opts.id,
+                                        first: opts.first,
+                                    });
 
-                            if (
-                                delta.content.includes(".") ||
-                                delta.content.includes("?") ||
-                                delta.content.includes("!") ||
-                                delta.content.includes("\n")
-                            ) {
-                                currentSentence = currentSentence.trim();
-                                if (currentSentence) {
-                                    this.messageEmitter.emit("generate_audio", {
+                                    currentSentence = "";
+                                    return;
+                                }
+
+                                currentSentence += delta.content;
+                                if (
+                                    currentSentence.trim() &&
+                                    (delta.content.includes(".") ||
+                                        delta.content.includes("?") ||
+                                        delta.content.includes("!") ||
+                                        delta.content.includes("\n"))
+                                ) {
+                                    this.messageEmitter.emit("sentence", {
                                         text: currentSentence,
                                         order: counter++,
                                         id: opts.id,
                                         first: opts.first,
                                     });
+                                    currentSentence = "";
                                 }
-
-                                currentSentence = "";
+                            } else {
+                                this.messageEmitter.emit("delta", {
+                                    delta: delta.content,
+                                    first,
+                                });
                             }
-
-                            this.messageEmitter.emit("message", {
-                                delta: delta.content,
-                                first,
-                            });
-                            first = false;
                         }
+                        first = false;
                     } catch (err) {
                         console.warn(
                             "OpenAI stream SEE event unexpected error",
