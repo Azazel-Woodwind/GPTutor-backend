@@ -74,21 +74,6 @@ export function formatChat(chat: Message[]): string {
     return chatString;
 }
 
-export async function getConversationData(
-    dataPrompt: string,
-    chat: ChatGPTConversation,
-    socket: Socket
-) {
-    const tempChat = new ChatGPTConversation({
-        socket,
-        systemPrompt: dataPrompt,
-    });
-
-    const json = await tempChat.getData();
-
-    return json;
-}
-
 export async function streamString(
     string: string,
     socket: Socket,

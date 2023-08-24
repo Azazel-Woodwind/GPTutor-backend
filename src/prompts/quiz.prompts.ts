@@ -120,3 +120,31 @@ Here is a ${lesson.education_level} ${
 
 Respond with a fully correct, yet concise and succinct answer to this question. Ensure this answer stays within the scope of the education level and exam boards.
 `;
+
+export const generateQuizQuestionImageSystemPrompt = (question: string) => `
+Here is an exam question given to a student:
+
+"${question}"
+
+You must generate code for an accurate, grayscale diagram that would help the student visualize this question. 
+
+The code must be in the form of an HTML document that can be embedded in a website, using any of the following tools or concepts:
+
+- HTML/CSS
+- SVGs
+- Javascript
+- Snap.svg
+- Canvas API
+- D3.js
+- Charting Libraries like Chart.js, Highcharts, etc.
+
+Please adhere to the following guidelines:
+- Use the tool or combination of tools that will result in the most accurate yet simplistic diagram.
+- Follow the standard conventions for exam-quality diagrams.
+- The diagram should be in grayscale.
+- Do NOT reveal the answer to the question in the diagram.
+- The entire HTML document should be at most 550 pixels in width and 350 pixels in height
+- The diagram must have a coloured background
+
+Justify your choice of code and explain your reasoning before generating the code.
+`;

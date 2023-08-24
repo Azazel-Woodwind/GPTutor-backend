@@ -7,6 +7,7 @@ import {
     generateFeedbackSystemPrompt,
     generateHintsSystemPrompt,
     generateQuizAnswerSystemPrompt,
+    generateQuizQuestionImageSystemPrompt,
     generateQuizQuestionsSystemPrompt,
 } from "../../prompts/quiz.prompts";
 import { getAudioData } from "../../lib/tts.utils";
@@ -54,6 +55,11 @@ const generateQuestion = async (
     });
     console.log("GENERATED QUESTION:", question);
 
+    const imageGenerator = new ChatGPTConversation({
+        systemPrompt: generateQuizQuestionImageSystemPrompt(question),
+        socket,
+    });
+
     const final =
         questionNumber ===
         QUESTIONS_PER_LEARNING_OBJECTIVE * lesson.learning_objectives.length -
@@ -70,12 +76,20 @@ const generateQuestion = async (
                       .filter(Boolean),
               };
 
-    socket.emit("quiz_next_question", {
-        raw: question,
-        question: questionData,
-        type,
-        questionNumber,
-        final,
+    imageGenerator.messageEmitter.on("data", async ({ data }) => {
+        socket.emit("quiz_next_question", {
+            raw: question,
+            question: questionData,
+            type,
+            questionNumber,
+            final,
+            imageHTML: data,
+        });
+    });
+
+    await imageGenerator!.generateResponse({
+        initialDataSeparator: ["``", "`", "html"],
+        terminalDataSeparator: ["``", "`"],
     });
 
     return question;

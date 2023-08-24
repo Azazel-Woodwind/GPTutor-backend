@@ -6,6 +6,7 @@ import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
 import { encoding_for_model } from "@dqbd/tiktoken";
 import { generateDataPrompt } from "../prompts/data.prompts";
+import { reduceEachTrailingCommentRange } from "typescript";
 
 interface ConstructorParams {
     systemPrompt?: string;
@@ -14,11 +15,40 @@ interface ConstructorParams {
     tokenUsage?: boolean;
 }
 
+type GenerateResponseProps = {
+    message?: string;
+    initialDataSeparator?: string[];
+    terminalDataSeparator?: string[];
+    system?: boolean;
+    silent?: boolean;
+    audio?: boolean;
+    temperature?: number;
+    stopOnData?: boolean;
+    id?: string;
+    first?: boolean;
+};
+
+type GenerateChatCompletionProps = {
+    message?: string;
+    initialDataSeparator: string[];
+    terminalDataSeparator: string[];
+    system: boolean;
+    silent: boolean;
+    audio: boolean;
+    temperature: number;
+    stopOnData: boolean;
+    id?: string;
+    first?: boolean;
+};
+
 const defaultOps = {
+    initialDataSeparator: [`"""`],
+    terminalDataSeparator: [`"""`],
     system: false,
     silent: false,
     audio: false,
     temperature: 0.7,
+    stopOnData: false,
 };
 
 class ChatGPTConversation {
@@ -60,28 +90,6 @@ class ChatGPTConversation {
         //     : tokenizer.encode(newSystemPrompt).text.length;
     }
 
-    async getData(dataPrompt?: string) {
-        await this.checkExceededTokenQuota();
-        console.log("GETTING JSON DATA");
-        let count = 0;
-        let json;
-        do {
-            const response = await this.generateChatCompletion({
-                message: dataPrompt,
-                silent: true,
-                temperature: 0,
-            });
-            console.log("Json data:", response, "end of json data");
-            json = findJsonInString(response.content);
-
-            count++;
-        } while (!json && count < 5);
-
-        if (!json) return false;
-
-        return json;
-    }
-
     async checkExceededTokenQuota() {
         const exceeded = await exceededTokenQuota(
             this.socket.user!.id,
@@ -107,16 +115,8 @@ class ChatGPTConversation {
 
     async generateResponse({
         message,
-        // dataPrompt,
         ...opts
-    }: {
-        message?: string;
-        // dataPrompt?: {
-        //     definitions: { [key: string]: string };
-        //     start?: boolean;
-        // };
-        [key: string]: any;
-    } = {}): Promise<string> {
+    }: GenerateResponseProps = {}): Promise<string> {
         await this.checkExceededTokenQuota();
 
         if (message) this.chatHistory.push({ role: "user", content: message });
@@ -139,16 +139,8 @@ class ChatGPTConversation {
 
     private async generateChatCompletion({
         message,
-        // dataPrompt,
         ...opts
-    }: {
-        message?: string;
-        // dataPrompt?: {
-        //     definitions: { [key: string]: string };
-        //     start?: boolean;
-        // };
-        [key: string]: any;
-    }): Promise<Message> {
+    }: GenerateChatCompletionProps): Promise<Message> {
         if (this.systemPrompt === undefined) {
             throw new Error("System prompt not set");
         }
@@ -195,13 +187,14 @@ class ChatGPTConversation {
             this.abortController = new AbortController();
 
             let currentSentence = "";
-
             let counter = 0;
-
             let inData = false;
             let first = true;
             let responseData = "";
             let fullResponse = "";
+            let tempBuffer = "";
+            let initialDataSeparatorIndex = 0;
+            let terminalDataSeparatorIndex = 0;
             fetchSSE(url, {
                 method: "POST",
                 headers,
@@ -245,22 +238,69 @@ class ChatGPTConversation {
 
                         // console.log("DELTA:", delta.content);
 
-                        if (delta.content.trim() === '"""') {
-                            if (!inData) {
+                        if (
+                            delta.content.trim() ===
+                            opts.initialDataSeparator[initialDataSeparatorIndex]
+                        ) {
+                            if (
+                                initialDataSeparatorIndex ===
+                                opts.initialDataSeparator.length - 1
+                            ) {
                                 inData = true;
+                                initialDataSeparatorIndex = 0;
+                                tempBuffer = "";
                             } else {
-                                inData = false;
-                                console.log("DATA:", responseData);
-                                this.messageEmitter.emit("data", {
-                                    ...JSON.parse(responseData),
-                                    order: counter++,
-                                    id: opts.id,
-                                    first: opts.first,
-                                });
-                                responseData = "";
+                                tempBuffer += delta.content;
+                                initialDataSeparatorIndex++;
                             }
 
                             return;
+                        } else if (initialDataSeparatorIndex > 0) {
+                            delta.content = tempBuffer + delta.content;
+                            initialDataSeparatorIndex = 0;
+                            tempBuffer = "";
+                        }
+
+                        if (
+                            delta.content.trim() ===
+                            opts.terminalDataSeparator[
+                                terminalDataSeparatorIndex
+                            ]
+                        ) {
+                            if (
+                                terminalDataSeparatorIndex ===
+                                opts.terminalDataSeparator.length - 1
+                            ) {
+                                inData = false;
+                                terminalDataSeparatorIndex = 0;
+                                tempBuffer = "";
+                                console.log("DATA:", responseData);
+                                try {
+                                    const data = JSON.parse(responseData);
+                                    this.messageEmitter.emit("data", {
+                                        ...data,
+                                        order: counter++,
+                                        id: opts.id,
+                                        first: opts.first,
+                                    });
+                                } catch (error) {
+                                    this.messageEmitter.emit("data", {
+                                        data: responseData,
+                                        order: counter++,
+                                        id: opts.id,
+                                        first: opts.first,
+                                    });
+                                }
+                                responseData = "";
+                            } else {
+                                tempBuffer += delta.content;
+                                terminalDataSeparatorIndex++;
+                            }
+                            return;
+                        } else if (terminalDataSeparatorIndex > 0) {
+                            delta.content = tempBuffer + delta.content;
+                            terminalDataSeparatorIndex = 0;
+                            tempBuffer = "";
                         }
 
                         if (inData) {
@@ -273,8 +313,6 @@ class ChatGPTConversation {
                         if (delta.role) {
                             result.role = delta.role;
                         }
-
-                        opts?.onProgress?.(result);
 
                         if (!opts?.silent) {
                             if (opts.audio) {
