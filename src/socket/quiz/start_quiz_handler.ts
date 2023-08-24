@@ -10,9 +10,6 @@ import {
     generateQuizQuestionImageSystemPrompt,
     generateQuizQuestionsSystemPrompt,
 } from "../../prompts/quiz.prompts";
-import { getAudioData } from "../../lib/tts.utils";
-import OrderMaintainer from "../../lib/OrderMaintainer";
-import { streamString } from "../../lib/XUtils";
 import { eventEmitterSetup } from "../../lib/socketSetup";
 import { STREAM_END_MESSAGE, STREAM_SPEED } from "../../lib/constants";
 import DelayedBuffer from "../../lib/DelayedBuffer";
@@ -55,11 +52,6 @@ const generateQuestion = async (
     });
     console.log("GENERATED QUESTION:", question);
 
-    const imageGenerator = new ChatGPTConversation({
-        systemPrompt: generateQuizQuestionImageSystemPrompt(question),
-        socket,
-    });
-
     const final =
         questionNumber ===
         QUESTIONS_PER_LEARNING_OBJECTIVE * lesson.learning_objectives.length -
@@ -76,20 +68,32 @@ const generateQuestion = async (
                       .filter(Boolean),
               };
 
-    imageGenerator.messageEmitter.on("data", async ({ data }) => {
-        socket.emit("quiz_next_question", {
-            raw: question,
-            question: questionData,
-            type,
-            questionNumber,
-            final,
-            imageHTML: data,
-        });
+    const imageGenerator = new ChatGPTConversation({
+        systemPrompt: generateQuizQuestionImageSystemPrompt(question),
+        socket,
     });
 
-    await imageGenerator!.generateResponse({
-        initialDataSeparator: ["``", "`", "html"],
+    imageGenerator.messageEmitter.on("data", async ({ data }) => {
+        socket.emit("quiz_question_image", {
+            imageHTML: data,
+            questionNumber,
+        });
+        imageGenerator.cleanUp();
+    });
+
+    console.log("GENERATING QUESTION IMAGE");
+    imageGenerator!.generateResponse({
+        initialDataSeparator: ["```", "html"],
         terminalDataSeparator: ["``", "`"],
+    });
+
+    // console.log("GENERATED QUESTION IMAGE:", image);
+    socket.emit("quiz_next_question", {
+        raw: question,
+        question: questionData,
+        type,
+        questionNumber,
+        final,
     });
 
     return question;

@@ -143,8 +143,12 @@ Please adhere to the following guidelines:
 - Follow the standard conventions for exam-quality diagrams.
 - The diagram should be in grayscale.
 - Do NOT reveal the answer to the question in the diagram.
-- The entire HTML document should be at most 550 pixels in width and 350 pixels in height
-- The diagram must have a coloured background
+- The entire HTML document should be 550 pixels in width and 350 pixels in height
+- The diagram must have a white background
+- Format the code like so:
+\`\`\`html
+(your HTML code)
+\`\`\`
 
 Justify your choice of code and explain your reasoning before generating the code.
 `;

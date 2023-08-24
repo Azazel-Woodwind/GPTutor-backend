@@ -175,7 +175,7 @@ class ChatGPTConversation {
                 temperature: opts.temperature || 1,
             };
 
-            console.log("BODY MESSAGES:", body.messages);
+            // console.log("BODY MESSAGES:", body.messages);
 
             const headers = {
                 "Content-Type": "application/json",
@@ -220,8 +220,8 @@ class ChatGPTConversation {
                             );
                             this.socket.currentUsage = 0;
                         }
-                        console.log("RESPONSE:", result);
-                        console.log("FULL RESPONSE:", fullResponse);
+                        // console.log("RESPONSE:", result);
+                        // console.log("FULL RESPONSE:", fullResponse);
                         return resolve(result);
                     }
 
@@ -239,42 +239,59 @@ class ChatGPTConversation {
                         // console.log("DELTA:", delta.content);
 
                         if (
+                            !inData &&
                             delta.content.trim() ===
-                            opts.initialDataSeparator[initialDataSeparatorIndex]
+                                opts.initialDataSeparator[
+                                    initialDataSeparatorIndex
+                                ]
                         ) {
                             if (
                                 initialDataSeparatorIndex ===
                                 opts.initialDataSeparator.length - 1
                             ) {
+                                console.log("INITIAL DATA SEPARATOR MATCHED");
                                 inData = true;
                                 initialDataSeparatorIndex = 0;
                                 tempBuffer = "";
                             } else {
+                                console.log(
+                                    "INITIAL DATA SEPARATOR MATCHING:",
+                                    initialDataSeparatorIndex
+                                );
                                 tempBuffer += delta.content;
                                 initialDataSeparatorIndex++;
                             }
 
                             return;
                         } else if (initialDataSeparatorIndex > 0) {
+                            console.log(
+                                "Fake initial separator match:",
+                                tempBuffer
+                            );
+                            console.log(
+                                `Should be ${opts.initialDataSeparator[initialDataSeparatorIndex]} but is ${delta.content}`
+                            );
                             delta.content = tempBuffer + delta.content;
                             initialDataSeparatorIndex = 0;
                             tempBuffer = "";
                         }
 
                         if (
+                            inData &&
                             delta.content.trim() ===
-                            opts.terminalDataSeparator[
-                                terminalDataSeparatorIndex
-                            ]
+                                opts.terminalDataSeparator[
+                                    terminalDataSeparatorIndex
+                                ]
                         ) {
                             if (
                                 terminalDataSeparatorIndex ===
                                 opts.terminalDataSeparator.length - 1
                             ) {
+                                console.log("TERMINAL DATA SEPARATOR MATCHED");
                                 inData = false;
                                 terminalDataSeparatorIndex = 0;
                                 tempBuffer = "";
-                                console.log("DATA:", responseData);
+                                // console.log("DATA:", responseData);
                                 try {
                                     const data = JSON.parse(responseData);
                                     this.messageEmitter.emit("data", {
@@ -293,12 +310,23 @@ class ChatGPTConversation {
                                 }
                                 responseData = "";
                             } else {
+                                console.log(
+                                    "INITIAL DATA SEPARATOR MATCHING:",
+                                    terminalDataSeparatorIndex
+                                );
                                 tempBuffer += delta.content;
                                 terminalDataSeparatorIndex++;
                             }
                             return;
                         } else if (terminalDataSeparatorIndex > 0) {
                             delta.content = tempBuffer + delta.content;
+                            console.log(
+                                "Fake terminal separator match:",
+                                tempBuffer
+                            );
+                            console.log(
+                                `Should be ${opts.terminalDataSeparator[terminalDataSeparatorIndex]} but is ${delta.content}`
+                            );
                             terminalDataSeparatorIndex = 0;
                             tempBuffer = "";
                         }

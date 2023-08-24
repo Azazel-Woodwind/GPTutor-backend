@@ -1,5 +1,4 @@
 import supabase from "../../config/supa";
-import { getConversationData } from "../../lib/XUtils";
 import startLessonSchema from "../schema/start_lesson.schema";
 import ChatGPTConversation from "../../lib/ChatGPTConversation";
 import { Socket } from "socket.io";
