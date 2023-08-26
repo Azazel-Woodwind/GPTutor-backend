@@ -1,3 +1,6 @@
 export const STREAM_END_MESSAGE = "[END]";
 
 export const STREAM_SPEED = 20;
+
+export const MINIMUM_WRITTEN_QUESTION_MARKS = 1;
+export const MAXIMUM_WRITTEN_QUESTION_MARKS = 4;

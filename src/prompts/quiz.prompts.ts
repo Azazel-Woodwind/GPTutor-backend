@@ -17,23 +17,29 @@ You are an extremely intelligent ${
 } who writes assignments for a student.
 
 Here are the details for a lesson that the student has attended:
-${JSON.stringify(
-    {
-        title: lesson.title,
-        subject: lesson.subject,
-        educationLevel: lesson.education_level,
-        learningObjective:
-            lesson.learning_objectives![learningObjectiveIndex].description,
-    },
-    null,
-    2
-)}
 
-You must write questions testing the student's understanding on the lesson's learningObjective provided in the lesson data. The question must be relevant ONLY to the lesson title, subject, educationLevel and learningObjective. The question must be within the academic scope of the lesson's educationLevel.
+Title: ${lesson.title}
+Subject: ${lesson.subject}
+Education Level: ${lesson.education_level}
+Exam Boards: ${commaSeparate(lesson.exam_boards)}
+Learning Objective: ${
+    lesson.learning_objectives![learningObjectiveIndex].description
+}
 
-When you are prompted with "multiple", you must write a single multiple choice question only with 4 choices. There must only be ONE correct answer. The question and each choice should be separated by a single line break. Do not prefix the choices with any letters, numbers or punctuation.
 
-When you are prompted with "written", you must write a single written question only. DO NOT repeat a question you have written before.
+You must write questions testing the student's understanding on the lesson's Learning Objective. The question must be relevant ONLY to the lesson details.
+
+When you are prompted with "multiple", you must write a single multiple choice question only with 4 choices. There must only be ONE correct answer. Prefix each choice with a number and a period. For example:
+(your question)
+1. Choice 1
+2. Choice 2
+3. Choice 3
+4. Choice 4
+
+When you are prompted with "written (number of marks)", you must write a single written question only that is worth the number of marks indicated. For example:
+(your question)
+
+DO NOT repeat a question you have written before.
 `;
 
 export const generateAnalysisMessage = ({
@@ -46,20 +52,38 @@ export const generateAnalysisMessage = ({
     studentSolution: string;
 }) => `
 Problem statement: """${question}"""
-Solution: """${solution}"""
+Your solution: """${solution}"""
 Student's solution: """${studentSolution}"""
 `;
 
-export const generateAnalysisSystemPrompt = `
-Compare your solution to the student's solution and evaluate if the student's solution is correct or not.
+export const generateAnalysisSystemPrompt = ({
+    lesson,
+    marks,
+}: {
+    lesson: Lesson;
+    marks: number;
+}) => `
+You will be prompted with a ${lesson.education_level} ${
+    lesson.subject
+} exam question from the ${commaSeparate(
+    lesson.exam_boards
+)} exam board/s worth ${marks} marks, your solution to the problem and a student's solution to the problem. Compare your solution to the student's solution and evaluate the correctness of the student's solution relative to the number of marks scored by the student.
+
+At the beginning of your response, indicate the number of marks the student's solution would be awarded in an exam and begin your analysis on a new line. For example:
+3
+(your analysis)
 `;
 
-export const generateFeedbackMessage = (
+export const generateWrittenFeedbackMessage = (
     studentSolution: string,
     analysis: string
 ) => `
 Student's solution: """${studentSolution}"""
 Analysis: """${analysis}"""
+`;
+
+export const generateMultipleChoiceFeedbackMessage = (choiceNumber: number) => `
+Student's choice: """${choiceNumber}"""
 `;
 
 export const generateFeedbackSystemPrompt = (
@@ -75,18 +99,29 @@ You are an enthusiastic ${
 ${
     multipleChoice ? "Multiple choice" : "Written"
 } problem statement: """${question}"""
-Your solution: """${solution}"""
+Your ${multipleChoice ? "choice" : "solution"}: """${solution}"""
 
-You will be prompted with the student's solution and analysis for their solution, in the order of their attempts. If the student made an error, offer a hint to the student in a way that does not reveal the answer. If the student did not make an error, congratulate the student and re-enforce their understanding by consolidating the correct answer and explaining why all non-chosen answers were incorrect if needed. This feedback should never exceed 512 chracters in length.
+You will be prompted with the student's ${
+    multipleChoice ? "choice" : "solution and your analysis for their solution"
+}, in the order of their attempts. If the student${
+    multipleChoice ? "'s choice does not match yours" : " made an error"
+}, offer a hint to the student in a way that does not reveal the answer. If the student${
+    multipleChoice
+        ? "'s choice does match your choice"
+        : " did not make an error"
+}, congratulate the student and re-enforce their understanding by consolidating the correct answer${
+    multipleChoice
+        ? " and explaining why all non-chosen answers were incorrect"
+        : ""
+}. Keep the feedback succinct.
 
 If the student answers incorrectly 4 times in a row, explain why the answer is incorrect as normal, and end the response with something similar to "Unfortunately, you have no remaining attempts. A modal answer will be provided in the answer box.", because the student will be shown the correct answer after this response.
 
 Respond in second person as if you are speaking to the student.
-
-You must prefix each response on a new line with the word "CORRECT" if the answer is correct or "INCORRECT" if the answer is incorrect. For example:
-CORRECT
-(feedback)
 `;
+// You must prefix each response on a new line with the word "CORRECT" if the answer is correct or "INCORRECT" if the answer is incorrect. For example:
+// CORRECT
+// (feedback)
 
 export const generateHintsSystemPrompt = (lesson: Lesson, question: string) => `
 You are an extremely intelligent ${
@@ -104,21 +139,28 @@ Respond in this format:
 }
 `;
 
-export const generateQuizAnswerSystemPrompt = (
-    lesson: Lesson,
-    question: string
-) => `
+export const solveWrittenQuestionSystemPrompt = ({
+    lesson,
+    question,
+    marks,
+}: {
+    lesson: Lesson;
+    question: string;
+    marks: number;
+}) => `
 You are an extremely intelligent ${
     SubjectProfessions[lesson.subject]
 } who is writing modal answers for exam questions.
 
 Here is a ${lesson.education_level} ${
     lesson.subject
-} exam question from the ${commaSeparate(lesson.exam_boards)} exam boards.
+} exam question from the ${commaSeparate(
+    lesson.exam_boards
+)} exam board/s. The question is worth ${marks} marks.
 
 "${question}"
 
-Respond with a fully correct, yet concise and succinct answer to this question. Ensure this answer stays within the scope of the education level and exam boards.
+Respond with a fully correct, yet succinct solution to this question. Ensure this answer stays within the scope of the education level and exam board/s. Include in your response where marks would be awarded in the answer.
 `;
 
 export const generateQuizQuestionImageSystemPrompt = (question: string) => `
@@ -126,7 +168,7 @@ Here is an exam question given to a student:
 
 "${question}"
 
-You must generate code for an accurate, grayscale diagram that would help the student visualize this question. 
+You must generate code for an accurate diagram that would help the student visualize this question. 
 
 The code must be in the form of an HTML document that can be embedded in a website, using any of the following tools or concepts:
 
@@ -144,11 +186,29 @@ Please adhere to the following guidelines:
 - The diagram should be in grayscale.
 - Do NOT reveal the answer to the question in the diagram.
 - The entire HTML document should be 550 pixels in width and 350 pixels in height
-- The diagram must have a white background
 - Format the code like so:
 \`\`\`html
 (your HTML code)
 \`\`\`
 
 Justify your choice of code and explain your reasoning before generating the code.
+`;
+
+export const multipleChoiceQuestionSystemPrompt =
+    "You will be prompted with a multiple choice question. Return a single number which corresponds to the most correct option.";
+
+export const getMarksForWrittenQuestionSystemPrompt = ({
+    lesson,
+    question,
+}: {
+    lesson: Lesson;
+    question: string;
+}) => `
+Here is a ${lesson.education_level} ${
+    lesson.subject
+} exam question from the ${commaSeparate(lesson.exam_boards)} exam boards.
+
+"${question}"
+
+You must return a single number which corresponds to the number of marks this question is worth according to education level and exam board/s.
 `;
