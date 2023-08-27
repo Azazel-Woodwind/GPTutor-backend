@@ -5,10 +5,10 @@ enum EducationLevel {
 }
 
 enum Subject {
-    MATHEMATICS = "mathematics",
-    PHYSICS = "physics",
-    CHEMISTRY = "chemistry",
-    BIOLOGY = "biology",
+    MATHEMATICS = "Mathematics",
+    PHYSICS = "Physics",
+    CHEMISTRY = "Chemistry",
+    BIOLOGY = "Biology",
 }
 
 type User = {

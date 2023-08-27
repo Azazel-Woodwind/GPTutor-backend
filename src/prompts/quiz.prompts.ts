@@ -2,10 +2,10 @@ import { GetEmailTemplateCommand } from "@aws-sdk/client-sesv2";
 import { commaSeparate } from "../lib/XUtils";
 
 const SubjectProfessions = {
-    mathematics: "mathematician",
-    physics: "physicist",
-    chemistry: "chemist",
-    biology: "biologist",
+    Mathematics: "mathematician",
+    Physics: "physicist",
+    Chemistry: "chemist",
+    Biology: "biologist",
 };
 
 export const generateQuizQuestionsSystemPrompt = (
@@ -26,7 +26,6 @@ Learning Objective: ${
     lesson.learning_objectives![learningObjectiveIndex].description
 }
 
-
 You must write questions testing the student's understanding on the lesson's Learning Objective. The question must be relevant ONLY to the lesson details.
 
 When you are prompted with "multiple", you must write a single multiple choice question only with 4 choices. There must only be ONE correct answer. Prefix each choice with a number and a period. For example:
@@ -36,8 +35,7 @@ When you are prompted with "multiple", you must write a single multiple choice q
 3. Choice 3
 4. Choice 4
 
-When you are prompted with "written (number of marks)", you must write a single written question only that is worth the number of marks indicated. For example:
-(your question)
+When you are prompted with "written (number of marks)", you must write a single written question only that is worth the number of marks indicated. Ensure that the question is written in a way such that its depth matches the number of marks it is worth, and it is intuitive to the student how to gain each mark. Do not include the number of marks in the question.
 
 DO NOT repeat a question you have written before.
 `;
@@ -52,7 +50,7 @@ export const generateAnalysisMessage = ({
     studentSolution: string;
 }) => `
 Problem statement: """${question}"""
-Your solution: """${solution}"""
+Your mark scheme: """${solution}"""
 Student's solution: """${studentSolution}"""
 `;
 
@@ -67,7 +65,7 @@ You will be prompted with a ${lesson.education_level} ${
     lesson.subject
 } exam question from the ${commaSeparate(
     lesson.exam_boards
-)} exam board/s worth ${marks} marks, your solution to the problem and a student's solution to the problem. Compare your solution to the student's solution and evaluate the correctness of the student's solution relative to the number of marks scored by the student.
+)} exam board/s worth ${marks} marks, your mark scheme for the problem and a student's solution to the problem. Use your mark scheme to evaluate the correctness of the student's solution relative to the number of marks scored by the student.
 
 At the beginning of your response, indicate the number of marks the student's solution would be awarded in an exam and begin your analysis on a new line. For example:
 3
@@ -99,23 +97,23 @@ You are an enthusiastic ${
 ${
     multipleChoice ? "Multiple choice" : "Written"
 } problem statement: """${question}"""
-Your ${multipleChoice ? "choice" : "solution"}: """${solution}"""
+Your ${multipleChoice ? "choice" : "mark scheme"}: """${solution}"""
 
 You will be prompted with the student's ${
-    multipleChoice ? "choice" : "solution and your analysis for their solution"
+    multipleChoice ? "choice" : "solution and your analysis of their solution"
 }, in the order of their attempts. If the student${
-    multipleChoice ? "'s choice does not match yours" : " made an error"
+    multipleChoice
+        ? "'s choice does not match yours"
+        : " did not score full marks according to your analysis"
 }, offer a hint to the student in a way that does not reveal the answer. If the student${
     multipleChoice
         ? "'s choice does match your choice"
-        : " did not make an error"
+        : " scored full marks according to your analysis"
 }, congratulate the student and re-enforce their understanding by consolidating the correct answer${
     multipleChoice
         ? " and explaining why all non-chosen answers were incorrect"
         : ""
-}. Keep the feedback succinct.
-
-If the student answers incorrectly 4 times in a row, explain why the answer is incorrect as normal, and end the response with something similar to "Unfortunately, you have no remaining attempts. A modal answer will be provided in the answer box.", because the student will be shown the correct answer after this response.
+}. Keep all feedback succinct. Do not comment on the student's grammar or spelling.
 
 Respond in second person as if you are speaking to the student.
 `;
@@ -150,7 +148,7 @@ export const solveWrittenQuestionSystemPrompt = ({
 }) => `
 You are an extremely intelligent ${
     SubjectProfessions[lesson.subject]
-} who is writing modal answers for exam questions.
+} who is writing mark schemes for exam questions.
 
 Here is a ${lesson.education_level} ${
     lesson.subject
@@ -160,7 +158,7 @@ Here is a ${lesson.education_level} ${
 
 "${question}"
 
-Respond with a fully correct, yet succinct solution to this question. Ensure this answer stays within the scope of the education level and exam board/s. Include in your response where marks would be awarded in the answer.
+Respond with a fully correct, inclusive mark scheme for this exam question. Ensure that this stays within the scope of the education level and exam board/s. The mark scheme may include multiple ways to gain marks for a single part of the question.
 `;
 
 export const generateQuizQuestionImageSystemPrompt = (question: string) => `
@@ -212,3 +210,6 @@ Here is a ${lesson.education_level} ${
 
 You must return a single number which corresponds to the number of marks this question is worth according to education level and exam board/s.
 `;
+
+export const OUT_OF_ATTEMPTS_MESSAGE =
+    " Unfortunately, you have no remaining attempts. A mark scheme will be provided in the answer box.";

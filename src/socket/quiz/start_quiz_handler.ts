@@ -11,6 +11,7 @@ import {
     multipleChoiceQuestionSystemPrompt,
     generateMultipleChoiceFeedbackMessage,
     solveWrittenQuestionSystemPrompt,
+    OUT_OF_ATTEMPTS_MESSAGE,
 } from "../../prompts/quiz.prompts";
 import { eventEmitterSetup } from "../../lib/socketSetup";
 import {
@@ -71,6 +72,8 @@ const generateQuestion = async (
             MAXIMUM_WRITTEN_QUESTION_MARKS
         );
         message += ` ${marks}`;
+
+        console.log("GENERATING WRITTEN QUESTION WITH MARKS:", marks);
     }
 
     const question = await questionGenerator!.generateResponse({
@@ -102,7 +105,7 @@ const generateQuestion = async (
 
     imageGenerator.messageEmitter.on("data", async ({ data }) => {
         console.log("GENERATED IMAGE FOR QUESTION", questionNumber);
-        console.log("IMAGE HTML:", data);
+        // console.log("IMAGE HTML:", data);
         socket.emit("quiz_question_image", {
             imageHTML: data,
             questionNumber,
@@ -171,6 +174,7 @@ const solveQuestion = async ({
     });
 
     const solution = await solutionGenerator.generateResponse({
+        message: question.type === "multiple" ? question.question : undefined,
         temperature: question.type === "multiple" ? 0 : 0.7,
     });
 
@@ -213,7 +217,7 @@ const generateAnalysis = async ({
         temperature: 0,
     });
 
-    console.log("GENERATED ANALYSIS:", analysis);
+    // console.log("GENERATED ANALYSIS:", analysis);
 
     return analysis;
 };
@@ -395,14 +399,13 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                                 questionIndex,
                                 choiceIndex,
                                 isCorrect:
-                                    choiceIndex ==
-                                    questions[questionIndex].solution,
+                                    choiceIndex + 1 ==
+                                    questions[questionIndex].solution?.trim(),
                                 type: questions[questionIndex].type,
                             });
                         } else {
                             if (attempts === 4) {
-                                const message =
-                                    " Unfortunately, you have no remaining attempts. A modal answer will be provided in the answer box.";
+                                const message = OUT_OF_ATTEMPTS_MESSAGE;
                                 await streamString(
                                     message,
                                     socket,
@@ -459,7 +462,8 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                         choiceIndex,
                         isCorrect:
                             questions[questionIndex].type === "multiple" &&
-                            choiceIndex == questions[questionIndex].solution,
+                            choiceIndex + 1 ==
+                                questions[questionIndex].solution?.trim(),
                         marksScored,
                         type: questions[questionIndex].type,
                         first,
@@ -508,9 +512,12 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                 });
 
                 const analysisData = analysis.split("\n");
-                marksScored = parseInt(analysisData[0]);
-                analysis = analysisData[1];
+                marksScored = parseFloat(analysisData[0]);
+                analysis =
+                    `The solution scores ${marksScored}/${questions[questionIndex].marks}. ` +
+                    analysisData[1];
 
+                console.log("ANALYSIS:", analysis);
                 response = await currentFeedbackGenerator.generateResponse({
                     message: generateWrittenFeedbackMessage(message, analysis),
                 });
