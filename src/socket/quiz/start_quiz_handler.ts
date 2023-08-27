@@ -404,7 +404,10 @@ const start_quiz_handler = async (data: ChannelData, socket: Socket) => {
                                 type: questions[questionIndex].type,
                             });
                         } else {
-                            if (attempts === 4) {
+                            if (
+                                attempts === 4 &&
+                                marksScored! < questions[questionIndex].marks
+                            ) {
                                 const message = OUT_OF_ATTEMPTS_MESSAGE;
                                 await streamString(
                                     message,
