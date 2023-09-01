@@ -84,10 +84,6 @@ class ChatGPTConversation {
     reset(newSystemPrompt: string) {
         this.chatHistory = [{ role: "system", content: newSystemPrompt }];
         this.systemPrompt = newSystemPrompt;
-        // this.socket.currentUsage = this.socket.currentUsage
-        //     ? this.socket.currentUsage +
-        //       tokenizer.encode(newSystemPrompt).text.length
-        //     : tokenizer.encode(newSystemPrompt).text.length;
     }
 
     async checkExceededTokenQuota() {
@@ -200,6 +196,15 @@ class ChatGPTConversation {
                 headers,
                 body: JSON.stringify(body),
                 signal: this.abortController.signal,
+                updateAbortController: fetchOptions => {
+                    if (fetchOptions) {
+                        this.abortController = new AbortController();
+                        fetchOptions.signal = this.abortController!.signal;
+                    }
+                },
+                abort: reason => {
+                    this.abortController!.abort(reason);
+                },
                 onMessage: async (data: any) => {
                     if (data === "[DONE]") {
                         this.messageEmitter.emit("end", {
@@ -221,7 +226,7 @@ class ChatGPTConversation {
                             this.socket.currentUsage = 0;
                         }
                         // console.log("RESPONSE:", result);
-                        // console.log("FULL RESPONSE:", fullResponse);
+                        console.log("FULL RESPONSE:", fullResponse);
                         return resolve(result);
                     }
 
@@ -376,6 +381,8 @@ class ChatGPTConversation {
                                 this.messageEmitter.emit("delta", {
                                     delta: delta.content,
                                     first,
+                                    order: counter++,
+                                    id: opts.id,
                                 });
                             }
                         }

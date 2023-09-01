@@ -97,6 +97,72 @@ type streamStringProps = {
     audioChannel?: string;
 };
 
+export async function sendXMessage({
+    channel,
+    socket,
+    message,
+}: {
+    channel: string;
+    socket: Socket;
+    message: string;
+}) {
+    console.log("SENDING MESSAGE:", message);
+    return new Promise<void>(resolve => {
+        const orderMaintainer = new OrderMaintainer({
+            callback: (data: any) => {
+                // console.log("SENDING INSTRUCTION:", data);
+                // socket.emit(`${channel}_audio_data`, data);
+                socket.emit(`${channel}_instruction`, data);
+                if (data.type === "end") {
+                    console.log("RESOLVING");
+                    resolve();
+                }
+            },
+        });
+
+        let front = 0;
+        let rear = 0;
+        let order = 0;
+        for (let char of message) {
+            // console.log(char);
+            if (["\n", ".", "?", "!"].includes(char)) {
+                const substring = message.slice(front, rear + 1);
+                console.log("SUBSTRING:", substring);
+                if (substring.trim()) {
+                    let substringOrder = order++;
+                    getAudioData(substring).then(audioData => {
+                        orderMaintainer.addData(
+                            {
+                                ...audioData,
+                                text: substring,
+                                type: "sentence",
+                                first: true, // bypass ID check
+                            },
+                            substringOrder
+                        );
+                    });
+
+                    front = rear + 1;
+                }
+            }
+
+            rear++;
+        }
+
+        orderMaintainer.addData(
+            {
+                type: "end",
+                first: true,
+            },
+            order++
+        );
+
+        socket.emit(`${channel}_response_data`, {
+            response: message,
+        });
+    });
+}
+
 export async function streamChatResponse({
     string,
     socket,

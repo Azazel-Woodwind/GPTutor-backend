@@ -4,15 +4,21 @@ import * as types from "./types";
 import { fetch as globalFetch } from "./fetch";
 import { streamAsyncIterable } from "./stream-async-iterable";
 import fs from "fs";
+import { AbortError } from "node-fetch";
 
 export async function fetchSSE(
     url: string,
     options: Parameters<typeof fetch>[1] & {
         onMessage: (data: string) => void;
+        updateAbortController?: (
+            fetchOptions: Parameters<typeof fetch>[1]
+        ) => void;
+        abort?: (reason?: string) => void;
     },
     fetch: types.FetchFn = globalFetch
 ) {
-    const { onMessage, ...fetchOptions } = options;
+    const { onMessage, updateAbortController, abort, ...fetchOptions } =
+        options;
     // console.log(fetchOptions);
     // fs.writeFileSync(
     //     "/tmp/fetchOptions.json",
@@ -24,21 +30,36 @@ export async function fetchSSE(
         if (count === 3) {
             throw new Error("ChatGPT error: timeout");
         }
-        const abortController = new AbortController();
+        let timeout: NodeJS.Timeout;
 
-        fetchOptions.signal = abortController.signal;
-        const timeout = setTimeout(() => {
-            abortController.abort();
-        }, 4000);
+        if (updateAbortController && abort) {
+            updateAbortController(fetchOptions);
+            timeout = setTimeout(() => {
+                abort("timeout");
+            }, 4000);
+        } else {
+            const abortController = new AbortController();
+
+            fetchOptions.signal = abortController.signal;
+
+            timeout = setTimeout(() => {
+                abortController.abort("timeout");
+            }, 4000);
+        }
+
         try {
             res = await fetch(url, fetchOptions);
         } catch (error: any) {
             console.log("FETCH ERROR:", error);
             console.log("ERROR NAME:", error.name);
-            if (error.name === "AbortError") {
-                console.log("REQUEST TIMEOUT, TRYING AGAIN");
-                count++;
-                continue;
+            if (fetchOptions.signal?.aborted) {
+                if (fetchOptions.signal.reason === "timeout") {
+                    console.log("REQUEST TIMEOUT, TRYING AGAIN");
+                    count++;
+                    continue;
+                } else {
+                    throw new types.ChatGPTError("request aborted");
+                }
             }
             throw error;
         } finally {

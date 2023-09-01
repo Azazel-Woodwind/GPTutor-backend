@@ -89,3 +89,15 @@ type InterServerEvents = {
 type Context = {
     path: string;
 };
+
+type Question = {
+    question: string;
+    title?: string;
+    choices?: string[];
+    solution?: string;
+    solvingQuestion: boolean;
+    type: "written" | "multiple";
+    marks: number;
+    final: boolean;
+    questionIndex: number;
+};

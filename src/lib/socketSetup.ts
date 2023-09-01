@@ -4,68 +4,9 @@ import DelayedBuffer from "./DelayedBuffer";
 import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
 import { STREAM_END_MESSAGE, STREAM_SPEED } from "./constants";
-
-export async function eventEmitterSetup({
-    chat,
-    socket,
-    streamChannel,
-    onResponseData,
-    onReceiveAudioData,
-    onMessage,
-    delay = 0,
-    sendEndMessage,
-    generateAudio = true,
-}: {
-    chat: ChatGPTConversation;
-    socket: Socket;
-    streamChannel: string;
-    onResponseData?: (data: any) => void;
-    dataChannel?: string;
-    sendEndMessage?: boolean;
-    onReceiveAudioData?: (data: any) => void;
-    onMessage?: (message: string) => void;
-    delay?: number;
-    generateAudio?: boolean;
-}) {
-    const buffer = new DelayedBuffer(
-        async (data: any) => {
-            if (typeof data !== "string") {
-                onResponseData && onResponseData(data);
-                return;
-            }
-
-            onMessage ? onMessage(data) : socket.emit(streamChannel, data);
-        },
-        delay,
-        STREAM_SPEED
-    );
-
-    chat.messageEmitter.on("sentence", data => {
-        if (!socket.user?.req_audio_data) return;
-        getAudioData(data.text)
-            .then(audioData => {
-                onReceiveAudioData &&
-                    onReceiveAudioData({
-                        ...audioData,
-                        ...data,
-                        type: "sentence",
-                    });
-            })
-            .catch(err => console.log(err));
-    });
-
-    chat.messageEmitter.on("delta", data => {
-        onReceiveAudioData && onReceiveAudioData({ ...data, type: "delta" });
-    });
-
-    chat.messageEmitter.on("data", data => {
-        onReceiveAudioData && onReceiveAudioData({ ...data, type: "data" });
-    });
-
-    chat.messageEmitter.on("end", data => {
-        onReceiveAudioData && onReceiveAudioData({ ...data, type: "end" });
-    });
-}
+import Quiz from "./Quiz";
+import { OUT_OF_ATTEMPTS_MESSAGE } from "../prompts/quiz.prompts";
+import { streamString } from "./XUtils";
 
 type ContinueConversationParams = {
     message?: string;
@@ -93,37 +34,63 @@ type XSetupParams = {
     onResponse: (response: string, first?: boolean) => void;
     handleError?: (reason: string) => string;
     start?: boolean;
-    onResponseData?: (data: any) => void;
+    onInstruction?: (data: any) => void;
+    onExit?: () => void;
 };
 
 export async function XSetup(params: XSetupParams) {
-    const { chat, socket, channel, onMessageX, start, onResponseData } = params;
-    const delay = 0;
+    const { chat, socket, channel, onMessageX, start, onInstruction, onExit } =
+        params;
 
     let currentResponseId: undefined | string = undefined;
 
     const orderMaintainer = new OrderMaintainer({
-        callback: (data: any) => {
-            // socket.emit(`${channel}_audio_data`, data);
-            socket.emit(`${channel}_instruction`, data);
-        },
+        callback:
+            onInstruction ||
+            ((data: any) => {
+                // socket.emit(`${channel}_audio_data`, data);
+                socket.emit(`${channel}_instruction`, data);
+            }),
     });
 
-    eventEmitterSetup({
-        chat,
-        socket,
-        streamChannel: `${channel}_response_stream`,
-        dataChannel: `${channel}_data`,
-        sendEndMessage: true,
-        onResponseData,
-        onReceiveAudioData: data => {
-            if (!data.first && data.id !== currentResponseId) return;
+    function addToOrderMaintainer(data: any, type: string) {
+        if (!data.first && data.id !== currentResponseId) return;
 
-            // console.log("CONVERTED TO SPEECH DATA:", text);
-            orderMaintainer.addData(data, data.order);
-        },
-        delay,
+        // console.log("CONVERTED TO SPEECH DATA:", text);
+        orderMaintainer.addData({ ...data, type }, data.order);
+    }
+
+    chat.messageEmitter.on("sentence", async data => {
+        getAudioData(data.text)
+            .then(audioData => {
+                data = {
+                    ...audioData,
+                    ...data,
+                };
+
+                addToOrderMaintainer(data, "sentence");
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        // try {
+        //     const audioData = await getAudioData(data.text);
+        //     data = {
+        //         ...audioData,
+        //         ...data,
+        //     };
+        // } catch (error) {
+        //     console.log(error);
+        // }
+
+        // addToOrderMaintainer(data, "sentence");
     });
+
+    for (let instructionType of ["data", "delta", "end"]) {
+        chat.messageEmitter.on(instructionType, async data => {
+            addToOrderMaintainer(data, instructionType);
+        });
+    }
 
     socket.on(`${channel}_message_x`, ({ message, context, id }) => {
         orderMaintainer.reset();
@@ -140,6 +107,7 @@ export async function XSetup(params: XSetupParams) {
     });
 
     socket.on(`${channel}_exit`, () => {
+        onExit && onExit();
         console.log(`${channel}_exit`);
 
         chat.cleanUp();
@@ -173,5 +141,103 @@ export async function continueConversation({
         onResponse && onResponse(response, first);
     } catch (error) {
         console.log(error);
+    }
+}
+
+export async function onFeedbackRequest({
+    studentAnswer,
+    questionIndex,
+    quiz, // quiz object
+    socket,
+    channel,
+    audio = false,
+}: {
+    studentAnswer: string | number;
+    questionIndex: number;
+    quiz: Quiz;
+    socket: Socket;
+    channel: string;
+    audio?: boolean;
+}) {
+    console.log("RECEIVED STUDENT ANSWER:", studentAnswer);
+    console.log("QUESTION INDEX:", questionIndex);
+    console.log("FOR QUESTION:", quiz.questions[questionIndex].question);
+    if (quiz.questions[questionIndex].type === "multiple") {
+        const { feedback, isCorrect } =
+            await quiz.generateMultipleChoiceQuestionFeedback({
+                studentChoiceIndex: studentAnswer as number,
+                questionIndex,
+                onFeedbackStream({ delta, isCorrect, first }) {
+                    socket.emit(`${channel}_feedback_stream`, {
+                        delta,
+                        questionIndex,
+                        choiceIndex: studentAnswer,
+                        isCorrect,
+                        type: "multiple",
+                        first,
+                    });
+                },
+            });
+        socket.emit(`${channel}_new_feedback`, {
+            feedback,
+            questionIndex,
+            choiceIndex: studentAnswer,
+            isCorrect,
+            type: "multiple",
+        });
+    } else {
+        const { feedback, marksScored, attempts } =
+            await quiz.generateWrittenQuestionFeedback({
+                studentSolution: studentAnswer as string,
+                questionIndex,
+                onFeedbackStream({ delta, marksScored, first }) {
+                    socket.emit(`${channel}_feedback_stream`, {
+                        delta,
+                        questionIndex,
+                        marksScored,
+                        type: "written",
+                        first,
+                    });
+                },
+            });
+
+        if (
+            attempts === 4 &&
+            marksScored! < quiz.questions[questionIndex].marks
+        ) {
+            const message = OUT_OF_ATTEMPTS_MESSAGE;
+            await streamString(message, socket, `${channel}_feedback_stream`, {
+                questionIndex,
+                marksScored,
+                type: "written",
+            });
+            socket.emit(`${channel}_new_feedback`, {
+                feedback: feedback + message,
+                questionIndex,
+                final: true,
+                marksScored,
+                type: "written",
+            });
+            await streamString(
+                quiz.questions[questionIndex].solution!,
+                socket,
+                `${channel}_answer_stream`,
+                {
+                    questionIndex,
+                }
+            );
+            socket.emit(`${channel}_answer`, {
+                answer: quiz.questions[questionIndex].solution!,
+                questionIndex,
+            });
+        } else {
+            socket.emit(`${channel}_new_feedback`, {
+                feedback,
+                questionIndex,
+                final: false,
+                marksScored,
+                type: "written",
+            });
+        }
     }
 }

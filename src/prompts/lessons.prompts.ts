@@ -58,6 +58,18 @@ When transitioning between instructions, you must indicate this with valid JSON 
 """
 This can be anywhere in a response and can appear multiple times in one prompt.
 
+When the current learning objective has been fully covered and I have no more questions, you must indicate this by responding with ONLY valid JSON enclosed in triple quotations marks ("""), with the key "finishedLearningObjective". This response must be this JSON and nothing more (no other words). Then, in your next response, continue with the lesson as normal. For example:
+You: "(...) Do you have any questions?"
+Me: "No, I understand."
+You: 
+"""
+{
+    "finishedLearningObjective": 1
+}
+"""
+You in next response: "(continue from where you left off)"
+You must never transition to the next learning objective without sending this JSON first.
+
 When the lesson has ended, you must indicate this with valid JSON enclosed in triple quotations marks ("""), with the key "finished". For example:
 """
 {

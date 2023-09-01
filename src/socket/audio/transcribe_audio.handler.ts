@@ -1,6 +1,7 @@
 import FormData from "form-data";
 import axios from "axios";
 import { Socket } from "socket.io";
+import fs from "fs";
 
 type ChannelData = {
     file: File;
@@ -8,8 +9,13 @@ type ChannelData = {
     id: string;
 };
 
-const transcribe_audioHandler = (data: ChannelData, socket: Socket) => {
+const transcribe_audioHandler = async (data: ChannelData, socket: Socket) => {
     const file = data.file;
+    // const buffer = Buffer.from(await file.arrayBuffer());
+    // fs.writeFile("output.webm", buffer, err => {
+    //     if (err) throw err;
+    //     console.log("File has been saved.");
+    // });
     console.log("Received audio");
     if (data.final) {
         console.log("RECEIVED FINAL AUDIO");
