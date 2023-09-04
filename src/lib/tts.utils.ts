@@ -49,7 +49,7 @@ export async function getAudioData(text: string) {
         },
     };
 
-    // console.log("CONVERTING TO SPEECH DATA:", text);
+    console.log("CONVERTING TO SPEECH DATA:", text);
 
     const [response] = await ttsClient.synthesizeSpeech(request);
     // console.log("response:", response);

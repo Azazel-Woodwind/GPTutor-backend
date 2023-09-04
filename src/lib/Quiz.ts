@@ -53,14 +53,14 @@ export default class Quiz {
     }
 
     public async generateNextQuestion({
-        type,
+        questionType,
         learningObjectiveIndex,
         hasImage,
         onImage,
         onQuestion,
         final = false,
     }: {
-        type: "written" | "multiple";
+        questionType: "written" | "multiple";
         learningObjectiveIndex: number;
         hasImage: boolean;
         onImage?: ({
@@ -76,7 +76,7 @@ export default class Quiz {
         // console.log("GENERATING NEXT QUESTION");
         const questionIndex = this.numQuestionsGenerated++;
         const questionData = await this.generateQuestion({
-            type,
+            questionType,
             learningObjectiveIndex,
             hasImage,
             onImage,
@@ -107,13 +107,13 @@ export default class Quiz {
     }
 
     public async generateQuestion({
-        type,
+        questionType,
         learningObjectiveIndex,
         hasImage,
         onImage,
         questionIndex,
     }: {
-        type: "written" | "multiple";
+        questionType: "written" | "multiple";
         learningObjectiveIndex: number;
         hasImage: boolean;
         onImage?: ({
@@ -135,9 +135,9 @@ export default class Quiz {
             this.currentLearningObjectiveIndex = learningObjectiveIndex;
         }
 
-        let message = type;
+        let message = questionType;
         let marks = 1;
-        if (type === "written") {
+        if (questionType === "written") {
             marks = getRandomNumberBetween(
                 MINIMUM_WRITTEN_QUESTION_MARKS,
                 MAXIMUM_WRITTEN_QUESTION_MARKS
@@ -154,7 +154,7 @@ export default class Quiz {
         // console.log("GENERATED QUESTION:", question);
 
         const questionData =
-            type === "written"
+            questionType === "written"
                 ? {}
                 : {
                       title: question.split("\n")[0],
@@ -190,14 +190,14 @@ export default class Quiz {
         return {
             question,
             ...questionData,
-            type,
+            questionType,
             marks,
         };
     }
 
     public async generateSolution(question: Question) {
         let systemPrompt = "";
-        if (question.type === "multiple") {
+        if (question.questionType === "multiple") {
             systemPrompt = multipleChoiceQuestionSystemPrompt;
         } else {
             systemPrompt = solveWrittenQuestionSystemPrompt({
@@ -216,8 +216,10 @@ export default class Quiz {
 
         const solution = await solutionGenerator.generateResponse({
             message:
-                question.type === "multiple" ? question.question : undefined,
-            temperature: question.type === "multiple" ? 0 : 0.7,
+                question.questionType === "multiple"
+                    ? question.question
+                    : undefined,
+            temperature: question.questionType === "multiple" ? 0 : 0.7,
         });
 
         console.log("ANSWER:", solution);
@@ -272,46 +274,37 @@ export default class Quiz {
         this.currentQuestionAttempts++;
     }
 
-    private async setupCurrentFeedbackGenerator(buffer: DelayedBuffer) {
-        if (!this.currentFeedbackGenerator) {
-            return;
-        }
-
-        this.currentFeedbackGenerator.messageEmitter.on("end", () => {
-            buffer.addData(STREAM_END_MESSAGE);
-        });
-
-        this.currentFeedbackGenerator.messageEmitter.on(
-            "delta",
-            ({ delta, first }) => {
-                if (delta) {
-                    if (first) {
-                        buffer.reset();
-                    }
-                    // buffer.addData(delta);
-                    for (const char of delta) {
-                        buffer.addData(char);
-                    }
-                }
-            }
-        );
-    }
-
     public async generateWrittenQuestionFeedback({
         studentSolution,
         questionIndex,
-        onFeedbackStream,
+        onDelta,
+        onSentence,
+        onEnd,
     }: {
         studentSolution: string;
         questionIndex: number;
-        onFeedbackStream: ({
+        onDelta?: ({
             delta,
             marksScored,
-            first,
         }: {
             delta: string;
             marksScored: number;
-            first: boolean;
+        }) => void;
+        onSentence?: ({
+            sentence,
+            marksScored,
+        }: {
+            sentence: string;
+            marksScored: number;
+        }) => void;
+        onEnd: ({
+            feedback,
+            marksScored,
+            attempts,
+        }: {
+            feedback: string;
+            marksScored: number;
+            attempts: number;
         }) => void;
     }) {
         await this.prepareForFeedback({
@@ -319,140 +312,155 @@ export default class Quiz {
             questionIndex,
         });
 
-        return new Promise<{
-            feedback: string;
-            marksScored: number;
-            attempts: number;
-        }>(async resolve => {
-            if (this.currentFeedbackGenerator === undefined) {
-                return;
-            }
+        if (!this.currentFeedbackGenerator) {
+            return;
+        }
 
-            let response = "";
-            let marksScored: undefined | number = undefined;
-            let first = true;
-            const buffer = new DelayedBuffer(
-                async (delta: string) => {
-                    if (delta === STREAM_END_MESSAGE) {
-                        this.currentFeedbackGenerator!.messageEmitter.removeAllListeners();
-                        return resolve({
-                            feedback: response,
-                            marksScored: marksScored!,
-                            attempts: this.currentQuestionAttempts,
-                        });
-                    }
-
-                    onFeedbackStream({
-                        delta,
-                        marksScored: marksScored!,
-                        first,
-                    });
-
-                    first = false;
-                },
-                0,
-                STREAM_SPEED
-            );
-
-            this.setupCurrentFeedbackGenerator(buffer);
-
-            // console.log(this.currentFeedbackGenerator.systemPrompt);
-
-            let analysis = await this.generateAnswerAnalysis({
-                question: this.questions[questionIndex],
-                studentSolution,
-            });
-
-            const analysisData = analysis.split("\n");
-            marksScored = parseFloat(analysisData[0]);
-            analysis =
-                `The solution scores ${marksScored}/${this.questions[questionIndex].marks}. ` +
-                analysisData[1];
-
-            console.log("ANALYSIS:", analysis);
-            response = await this.currentFeedbackGenerator.generateResponse({
-                message: generateWrittenFeedbackMessage(
-                    studentSolution,
-                    analysis
-                ),
-            });
-
-            console.log("GENERATED FEEDBACK:", response);
-            console.log("QUESTION NUMBER IS:", questionIndex);
+        let analysis = await this.generateAnswerAnalysis({
+            question: this.questions[questionIndex],
+            studentSolution,
         });
+
+        const analysisData = analysis.split("\n");
+        const marksScored = parseFloat(analysisData[0]);
+        analysis =
+            `The solution scores ${marksScored}/${this.questions[questionIndex].marks}. ` +
+            analysisData[1];
+
+        console.log("ANALYSIS:", analysis);
+
+        if (onDelta) {
+            this.currentFeedbackGenerator.messageEmitter.on(
+                "delta",
+                ({ delta }) => {
+                    onDelta({
+                        delta,
+                        marksScored,
+                    });
+                }
+            );
+        }
+
+        if (onSentence) {
+            this.currentFeedbackGenerator.messageEmitter.on(
+                "sentence",
+                ({ text }) => {
+                    onSentence({
+                        sentence: text,
+                        marksScored,
+                    });
+                }
+            );
+        }
+
+        if (onEnd) {
+            this.currentFeedbackGenerator.messageEmitter.on(
+                "end",
+                ({ response }) => {
+                    this.currentFeedbackGenerator!.messageEmitter.removeAllListeners();
+                    onEnd({
+                        feedback: response,
+                        marksScored,
+                        attempts: this.currentQuestionAttempts,
+                    });
+                }
+            );
+        }
+
+        await this.currentFeedbackGenerator.generateResponse({
+            message: generateWrittenFeedbackMessage(studentSolution, analysis),
+        });
+
+        // console.log("GENERATED FEEDBACK:", response);
+        console.log("QUESTION NUMBER IS:", questionIndex);
     }
 
     public async generateMultipleChoiceQuestionFeedback({
         studentChoiceIndex,
         questionIndex,
-        onFeedbackStream,
+        onDelta,
+        onSentence,
+        onEnd,
     }: {
         studentChoiceIndex: number;
         questionIndex: number;
-        onFeedbackStream: ({
+        onDelta?: ({
             delta,
             isCorrect,
-            first,
         }: {
             delta: string;
             isCorrect: boolean;
-            first: boolean;
+        }) => void;
+        onSentence?: ({
+            sentence,
+            isCorrect,
+        }: {
+            sentence: string;
+            isCorrect: boolean;
+        }) => void;
+        onEnd: ({
+            feedback,
+            isCorrect,
+        }: {
+            feedback: string;
+            isCorrect: boolean;
         }) => void;
     }) {
         await this.prepareForFeedback({
-            isMultipleChoice: false,
+            isMultipleChoice: true,
             questionIndex,
         });
 
-        return new Promise<{ feedback: string; isCorrect: boolean }>(
-            async resolve => {
-                if (this.currentFeedbackGenerator === undefined) {
-                    return;
+        if (!this.currentFeedbackGenerator) {
+            return;
+        }
+
+        const isCorrect =
+            studentChoiceIndex + 1 ===
+            parseInt(this.questions[questionIndex].solution!.trim());
+
+        if (onDelta) {
+            this.currentFeedbackGenerator.messageEmitter.on(
+                "delta",
+                ({ delta }) => {
+                    onDelta({
+                        delta,
+                        isCorrect,
+                    });
                 }
+            );
+        }
 
-                let response = "";
-                let first = true;
-                const buffer = new DelayedBuffer(
-                    async (delta: string) => {
-                        const isCorrect =
-                            "" + (studentChoiceIndex + 1) ===
-                            this.questions[questionIndex].solution!.trim();
-                        if (delta === STREAM_END_MESSAGE) {
-                            this.currentFeedbackGenerator!.messageEmitter.removeAllListeners();
-                            return resolve({
-                                feedback: response,
-                                isCorrect,
-                            });
-                        }
+        if (onSentence) {
+            this.currentFeedbackGenerator.messageEmitter.on(
+                "sentence",
+                ({ text }) => {
+                    onSentence({
+                        sentence: text,
+                        isCorrect,
+                    });
+                }
+            );
+        }
 
-                        onFeedbackStream({
-                            delta,
-                            isCorrect,
-                            first,
-                        });
+        if (onEnd) {
+            this.currentFeedbackGenerator.messageEmitter.on(
+                "end",
+                ({ response }) => {
+                    this.currentFeedbackGenerator!.messageEmitter.removeAllListeners();
+                    onEnd({
+                        feedback: response,
+                        isCorrect,
+                    });
+                }
+            );
+        }
 
-                        first = false;
-                    },
-                    0,
-                    STREAM_SPEED
-                );
-
-                this.setupCurrentFeedbackGenerator(buffer);
-
-                // console.log(this.currentFeedbackGenerator.systemPrompt);
-
-                response = await this.currentFeedbackGenerator.generateResponse(
-                    {
-                        message: generateMultipleChoiceFeedbackMessage(
-                            studentChoiceIndex + 1
-                        ),
-                    }
-                );
-
-                console.log("GENERATED FEEDBACK:", response);
-                console.log("QUESTION NUMBER IS:", questionIndex);
-            }
-        );
+        const response = await this.currentFeedbackGenerator.generateResponse({
+            message: generateMultipleChoiceFeedbackMessage(
+                studentChoiceIndex + 1
+            ),
+        });
     }
 
     public async generateAnswerAnalysis({

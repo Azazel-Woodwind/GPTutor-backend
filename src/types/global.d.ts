@@ -96,7 +96,7 @@ type Question = {
     choices?: string[];
     solution?: string;
     solvingQuestion: boolean;
-    type: "written" | "multiple";
+    questionType: "written" | "multiple";
     marks: number;
     final: boolean;
     questionIndex: number;

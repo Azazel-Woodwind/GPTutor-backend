@@ -12,6 +12,7 @@ declare module "socket.io" {
     interface Socket {
         user?: User;
         currentUsage?: number;
+        sessionID?: string;
     }
 }
 

@@ -3,7 +3,7 @@ import { Socket } from "socket.io";
 import { conversation } from "../../prompts/conversation.prompts";
 import { XSetup } from "../../lib/socketSetup";
 import * as introductionPrompts from "../../prompts/introduction.prompts";
-import { streamChatResponse, streamString } from "../../lib/XUtils";
+import { sendXMessage } from "../../lib/XUtils";
 
 const start_chatHandler = (data: any, socket: Socket) => {
     console.log("Received connection to start_chat");
@@ -15,40 +15,6 @@ const start_chatHandler = (data: any, socket: Socket) => {
         systemPrompt: conversation.systemPrompt(current_user!),
         socket,
     });
-
-    const onResponse = async (response: string) => {
-        socket.emit("chat_response_data", {
-            response,
-        });
-
-        // const data = await chat.getData(conversation.dataPrompt);
-
-        // const data = await getJsonData(
-        //     conversation.dataPrompt(chat.chatHistory.slice(1)),
-        //     chat,
-        //     socket
-        // );
-        // if (data.navigateTo) {
-        //     socket.emit("navigate", data.navigateTo);
-        // }
-    };
-
-    const updateContext = (context: Context) => {
-        chat.chatHistory[0].content = conversation.systemPrompt(
-            current_user!,
-            context
-        );
-    };
-
-    const onMessageX = async ({
-        message,
-        context,
-    }: {
-        message: string;
-        context?: Context;
-    }) => {
-        if (context) updateContext(context);
-    };
 
     const handleError = (reason: string) =>
         `We were unable to process your message, as it was flagged for violating our usage guidelines.
@@ -67,28 +33,24 @@ const start_chatHandler = (data: any, socket: Socket) => {
             console.log("Received message from user, continuing introduction");
 
             response = message;
-            streamChatResponse({
-                string: introductionPrompts
+            sendXMessage({
+                channel: "chat",
+                socket,
+                message: introductionPrompts
                     .response1(current_user!.first_name)
                     .trim(),
-                socket,
-                streamChannel: "chat_response_stream",
-                audioChannel: "chat_audio_data",
             });
         });
 
         socket.on(`chat_moved_to_lessons`, async () => {
             console.log("User moved to hub, continuing introduction");
-
-            streamChatResponse({
-                string: introductionPrompts
+            sendXMessage({
+                channel: "chat",
+                socket,
+                message: introductionPrompts
                     .response1Continuation(current_user!.first_name)
                     .trim(),
-                socket,
-                streamChannel: "chat_response_stream",
-                audioChannel: "chat_audio_data",
             });
-
             updateChatHistory({
                 chat,
                 response: response!,
@@ -101,28 +63,22 @@ const start_chatHandler = (data: any, socket: Socket) => {
                 chat,
                 socket,
                 channel: "chat",
-                onResponse,
-                onMessageX,
                 handleError,
                 start: process.env.KAI !== "true",
             });
         });
-
-        streamChatResponse({
-            string: introductionPrompts
+        sendXMessage({
+            channel: "chat",
+            socket,
+            message: introductionPrompts
                 .introduction(current_user!.first_name)
                 .trim(),
-            socket,
-            streamChannel: "chat_response_stream",
-            audioChannel: "chat_audio_data",
         });
     } else {
         XSetup({
             chat,
             socket,
             channel: "chat",
-            onResponse,
-            onMessageX,
             handleError,
             start: process.env.KAI !== "true",
             // start: true,

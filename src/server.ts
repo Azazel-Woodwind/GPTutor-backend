@@ -11,17 +11,17 @@ app.use(deserialiseUser);
 
 app.use(express.json());
 
-app.use(cors());
+const origin =
+    process.env.NODE_ENV === "development"
+        ? process.env.FRONTEND_DEVELOPMENT_ORIGIN
+        : process.env.FRONTEND_PRODUCTION_ORIGIN;
+app.use(cors({ origin }));
 
 app.use("/", apiRouter);
 
 const server = require("http").createServer(app);
-const io = new Server<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    InterServerEvents
->(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] },
+export const io = new Server(server, {
+    cors: { origin, methods: ["GET", "POST"] },
 });
 
 socketHandler(io);

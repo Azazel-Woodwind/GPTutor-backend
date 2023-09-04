@@ -8,6 +8,8 @@ declare global {
             JWT_SECRET: string;
             SUPABASE_DB_URL: string;
             SUPABASE_SERVICE_ROLE_KEY: string;
+            FRONTEND_DEVELOPMENT_ORIGIN: string;
+            FRONTEND_PRODUCTION_ORIGIN: string;
         }
     }
 }

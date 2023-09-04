@@ -21,11 +21,8 @@ type GenerateResponseProps = {
     terminalDataSeparator?: string[];
     system?: boolean;
     silent?: boolean;
-    audio?: boolean;
     temperature?: number;
     stopOnData?: boolean;
-    id?: string;
-    first?: boolean;
 };
 
 type GenerateChatCompletionProps = {
@@ -34,11 +31,8 @@ type GenerateChatCompletionProps = {
     terminalDataSeparator: string[];
     system: boolean;
     silent: boolean;
-    audio: boolean;
     temperature: number;
     stopOnData: boolean;
-    id?: string;
-    first?: boolean;
 };
 
 const defaultOps = {
@@ -183,7 +177,6 @@ class ChatGPTConversation {
             this.abortController = new AbortController();
 
             let currentSentence = "";
-            let counter = 0;
             let inData = false;
             let first = true;
             let responseData = "";
@@ -207,13 +200,11 @@ class ChatGPTConversation {
                 },
                 onMessage: async (data: any) => {
                     if (data === "[DONE]") {
-                        this.messageEmitter.emit("end", {
-                            order: counter++,
-                            id: opts.id,
-                            first: opts.first,
-                        });
                         result.content = result.content.trim();
                         result.rawContent = fullResponse;
+                        this.messageEmitter.emit("end", {
+                            response: result.content,
+                        });
                         if (this.tokenUsage) {
                             // console.log(
                             //     "SOCKET USAGE:",
@@ -301,16 +292,10 @@ class ChatGPTConversation {
                                     const data = JSON.parse(responseData);
                                     this.messageEmitter.emit("data", {
                                         ...data,
-                                        order: counter++,
-                                        id: opts.id,
-                                        first: opts.first,
                                     });
                                 } catch (error) {
                                     this.messageEmitter.emit("data", {
                                         data: responseData,
-                                        order: counter++,
-                                        id: opts.id,
-                                        first: opts.first,
                                     });
                                 }
                                 responseData = "";
@@ -348,42 +333,23 @@ class ChatGPTConversation {
                         }
 
                         if (!opts?.silent) {
-                            if (opts.audio) {
-                                if (!this.socket.user?.req_audio_data) {
-                                    this.messageEmitter.emit("delta", {
-                                        delta: currentSentence + delta.content,
-                                        order: counter++,
-                                        id: opts.id,
-                                        first: opts.first,
-                                    });
+                            this.messageEmitter.emit("delta", {
+                                delta: delta.content,
+                                first,
+                            });
 
-                                    currentSentence = "";
-                                    return;
-                                }
-
-                                currentSentence += delta.content;
-                                if (
-                                    currentSentence.trim() &&
-                                    (delta.content.includes(".") ||
-                                        delta.content.includes("?") ||
-                                        delta.content.includes("!") ||
-                                        delta.content.includes("\n"))
-                                ) {
-                                    this.messageEmitter.emit("sentence", {
-                                        text: currentSentence,
-                                        order: counter++,
-                                        id: opts.id,
-                                        first: opts.first,
-                                    });
-                                    currentSentence = "";
-                                }
-                            } else {
-                                this.messageEmitter.emit("delta", {
-                                    delta: delta.content,
-                                    first,
-                                    order: counter++,
-                                    id: opts.id,
+                            currentSentence += delta.content;
+                            if (
+                                currentSentence.trim() &&
+                                (delta.content.includes(".") ||
+                                    delta.content.includes("?") ||
+                                    delta.content.includes("!") ||
+                                    delta.content.includes("\n"))
+                            ) {
+                                this.messageEmitter.emit("sentence", {
+                                    text: currentSentence,
                                 });
+                                currentSentence = "";
                             }
                         }
                         first = false;

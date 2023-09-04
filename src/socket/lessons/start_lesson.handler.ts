@@ -6,18 +6,17 @@ import {
     generateLessonSystemPrompt,
     lesson,
 } from "../../prompts/lessons.prompts";
-import { XSetup, onFeedbackRequest } from "../../lib/socketSetup";
+import { XSetup } from "../../lib/socketSetup";
 import Quiz from "../../lib/Quiz";
 import { getAudioData } from "../../lib/tts.utils";
-import { sendXMessage } from "../../lib/XUtils";
+import { onWrittenFeedbackEnd, sendXMessage } from "../../lib/XUtils";
+import crypto from "crypto";
+import { io } from "../../server";
+import OrderMaintainer from "../../lib/OrderMaintainer";
+import { OUT_OF_ATTEMPTS_MESSAGE } from "../../prompts/quiz.prompts";
 
 type ChannelData = {
     current_lesson: Lesson;
-};
-
-type LessonResponseData = {
-    learningObjectiveNumber: number;
-    finished: boolean;
 };
 
 const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
@@ -29,6 +28,12 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
     // }
 
     const { current_lesson } = data;
+    const sessionID = `lesson-${socket.user!.id}-${current_lesson.id}-${crypto
+        .randomBytes(4)
+        .toString("hex")}`;
+    socket.join(sessionID);
+    socket.sessionID = sessionID;
+
     console.log("Received connection to start_lesson");
 
     // console.log("Current lesson:", current_lesson);
@@ -39,14 +44,6 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
     });
 
     // console.log("SYSTEM PROMPT:", chat.systemPrompt);
-
-    const onResponse = async (response: string) => {
-        if (!response.trim()) return;
-
-        socket.emit("lesson_response_data", {
-            response,
-        });
-    };
 
     let lastLearningObjective = 0;
 
@@ -62,16 +59,19 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
 
                 for (let i = 0; i < NUM_QUESTIONS; i++) {
                     quiz.generateNextQuestion({
-                        type: "multiple",
+                        questionType: "multiple",
                         learningObjectiveIndex: learningObjective - 1,
                         hasImage: false,
                         onQuestion(question: Question) {
-                            socket.emit("lesson_next_question", {
-                                ...question,
-                                questionString: question.question,
-                                questionIndex: question.questionIndex,
-                                final: i === 1,
-                            });
+                            io.to(socket.sessionID!).emit(
+                                "lesson_next_question",
+                                {
+                                    ...question,
+                                    questionString: question.question,
+                                    questionIndex: question.questionIndex,
+                                    final: i === 1,
+                                }
+                            );
                         },
                     })
                         .then((question: Question) =>
@@ -86,7 +86,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
                             ({ audioData, questionIndex }) =>
                                 (questionAudioData[
                                     questionIndex % NUM_QUESTIONS
-                                ] = audioData)
+                                ] = audioData.audioContent)
                         );
                 }
             }
@@ -106,40 +106,141 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
         }
 
         // console.log("SENDING DATA:", data);
-        socket.emit("lesson_instruction", data);
+        io.to(socket.sessionID!).emit("lesson_instruction", data);
     };
 
     socket.on("lesson_change_question", async questionIndex => {
         console.log("CHANGING TO QUESTION", questionIndex);
         quiz.changeQuestion(questionIndex);
+    });
+
+    socket.on("lesson_get_audio_for_question", questionIndex => {
         if (quiz.questions.length > questionIndex) {
-            socket.emit("lesson_instruction", {
+            io.to(socket.sessionID!).emit("lesson_instruction", {
                 type: "audio",
-                first: true,
                 audioContent: questionAudioData[questionIndex % NUM_QUESTIONS],
             });
         }
     });
 
-    socket.on("lesson_request_feedback", async ({ message, questionIndex }) => {
-        // console.log("REQUESTING FEEDBACK FOR QUESTION", questionIndex);
-        onFeedbackRequest({
-            studentAnswer: message,
-            questionIndex,
-            quiz,
-            socket,
-            channel: "lesson",
-        });
-    });
+    socket.on(
+        "lesson_request_written_feedback",
+        async ({ message, questionIndex }) => {
+            const orderMaintainer = new OrderMaintainer({
+                callback: (callback: Function) => {
+                    callback();
+                },
+            });
+
+            let order = 0;
+            await quiz.generateWrittenQuestionFeedback({
+                studentSolution: message,
+                questionIndex,
+                onSentence({ sentence, marksScored }) {
+                    const sentenceOrder = order++;
+                    getAudioData(sentence)
+                        .then(audioData => {
+                            orderMaintainer.addData(() => {
+                                io.to(socket.sessionID!).emit(
+                                    `lesson_instruction`,
+                                    {
+                                        ...audioData,
+                                        text: sentence,
+                                        marksScored,
+                                        type: "sentence",
+                                        context: "feedback_stream",
+                                        questionIndex,
+                                        questionType: "written",
+                                    }
+                                );
+                            }, sentenceOrder);
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                async onEnd({ feedback, marksScored, attempts }) {
+                    orderMaintainer.addData(() => {
+                        onWrittenFeedbackEnd({
+                            channel: "lesson",
+                            socket,
+                            feedback,
+                            marksScored,
+                            attempts,
+                            questionIndex,
+                            maxMarks: quiz.questions[questionIndex].marks,
+                            solution: quiz.questions[questionIndex].solution!,
+                            audio: true,
+                        });
+                    }, order);
+                },
+            });
+        }
+    );
+
+    socket.on(
+        "lesson_request_multiple_choice_feedback",
+        ({ message, questionIndex }) => {
+            const orderMaintainer = new OrderMaintainer({
+                callback: (callback: Function) => {
+                    callback();
+                },
+            });
+
+            let order = 0;
+            quiz.generateMultipleChoiceQuestionFeedback({
+                studentChoiceIndex: message,
+                questionIndex,
+                onSentence({ sentence, isCorrect }) {
+                    const currentOrder = order++;
+                    getAudioData(sentence)
+                        .then(audioData => {
+                            orderMaintainer.addData(() => {
+                                io.to(socket.sessionID!).emit(
+                                    `lesson_instruction`,
+                                    {
+                                        ...audioData,
+                                        text: sentence,
+                                        isCorrect,
+                                        type: "sentence",
+                                        context: "feedback_stream",
+                                        questionIndex,
+                                        questionType: "multiple",
+                                        choiceIndex: message,
+                                    }
+                                );
+                            }, currentOrder);
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
+                },
+                onEnd({ feedback, isCorrect }) {
+                    orderMaintainer.addData(() => {
+                        io.to(socket.sessionID!).emit(`lesson_instruction`, {
+                            feedback,
+                            questionIndex,
+                            choiceIndex: message,
+                            isCorrect,
+                            questionType: "multiple",
+                            type: "end",
+                            context: "new_feedback",
+                        });
+                    }, order);
+                },
+            });
+        }
+    );
 
     XSetup({
         chat,
         socket,
         channel: "lesson",
-        onResponse,
         start: true,
         onInstruction,
         onExit: () => {
+            socket.leave(sessionID);
+            socket.sessionID = undefined;
             socket.removeAllListeners("lesson_request_feedback");
             socket.removeAllListeners("lesson_change_question");
         },

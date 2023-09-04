@@ -5,12 +5,12 @@ class DelayedBuffer {
     private emptying: boolean = false;
 
     constructor(
-        private callback: (data: string) => Promise<void>,
+        private callback: (data: any) => any,
         private delay: number = 0,
         private speed: number = 0
     ) {}
 
-    async addData(data: string) {
+    async addData(data: any) {
         this.buffer.push(data);
 
         // If this is the first piece of data being added

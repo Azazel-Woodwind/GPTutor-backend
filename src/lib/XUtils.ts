@@ -1,12 +1,10 @@
 import supabase from "../config/supa";
-import ChatGPTConversation from "./ChatGPTConversation";
-
 import { Socket } from "socket.io";
-
-import { encoding_for_model } from "@dqbd/tiktoken";
 import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
 import { STREAM_END_MESSAGE, STREAM_SPEED } from "./constants";
+import { io } from "../server";
+import { OUT_OF_ATTEMPTS_MESSAGE } from "../prompts/quiz.prompts";
 
 export async function exceededTokenQuota(id: string, limit: number) {
     const { data: user, error } = await supabase
@@ -74,45 +72,44 @@ export function formatChat(chat: Message[]): string {
     return chatString;
 }
 
-export async function streamString(
-    string: string,
-    socket: Socket,
-    channel: string,
-    data: any
-): Promise<void> {
-    return new Promise(async resolve => {
-        for (const char of string) {
-            socket.emit(channel, { delta: char, ...data });
-            await new Promise(resolve => setTimeout(resolve, 35));
-        }
-        resolve();
-    });
-}
-
-type streamStringProps = {
-    string: string;
-    socket: Socket;
-    streamChannel: string;
-    data?: any;
-    audioChannel?: string;
-};
-
 export async function sendXMessage({
     channel,
     socket,
     message,
+    messageData,
+    endData,
+    audio = true,
 }: {
     channel: string;
     socket: Socket;
     message: string;
+    messageData?: any;
+    endData?: any;
+    audio?: boolean;
 }) {
     console.log("SENDING MESSAGE:", message);
-    return new Promise<void>(resolve => {
+    const emitter = socket.sessionID ? io.to(socket.sessionID) : socket;
+    return new Promise<void>(async resolve => {
+        if (!audio) {
+            for (const char of message) {
+                emitter.emit(`${channel}_instruction`, {
+                    delta: char,
+                    type: "delta",
+                    ...messageData,
+                });
+                await new Promise(resolve => setTimeout(resolve, STREAM_SPEED));
+            }
+            emitter.emit(`${channel}_instruction`, {
+                type: "end",
+                response: message,
+                ...endData,
+            });
+            return resolve();
+        }
+
         const orderMaintainer = new OrderMaintainer({
             callback: (data: any) => {
-                // console.log("SENDING INSTRUCTION:", data);
-                // socket.emit(`${channel}_audio_data`, data);
-                socket.emit(`${channel}_instruction`, data);
+                emitter.emit(`${channel}_instruction`, data);
                 if (data.type === "end") {
                     console.log("RESOLVING");
                     resolve();
@@ -136,7 +133,7 @@ export async function sendXMessage({
                                 ...audioData,
                                 text: substring,
                                 type: "sentence",
-                                first: true, // bypass ID check
+                                ...messageData,
                             },
                             substringOrder
                         );
@@ -152,78 +149,82 @@ export async function sendXMessage({
         orderMaintainer.addData(
             {
                 type: "end",
-                first: true,
+                response: message,
+                ...endData,
             },
             order++
         );
-
-        socket.emit(`${channel}_response_data`, {
-            response: message,
-        });
     });
 }
 
-export async function streamChatResponse({
-    string,
+export async function onWrittenFeedbackEnd({
+    channel,
     socket,
-    streamChannel,
-    audioChannel,
-}: streamStringProps): Promise<void> {
-    const encoding = encoding_for_model("gpt-3.5-turbo");
-
-    let currentSentence = "";
-    let orderMaintainer: undefined | OrderMaintainer = undefined;
-
-    if (audioChannel) {
-        orderMaintainer = new OrderMaintainer({
-            callback: (data: any) => {
-                console.log("sending audio data to channel", audioChannel);
-                socket.emit(audioChannel, data);
+    attempts,
+    marksScored,
+    feedback,
+    questionIndex,
+    maxMarks,
+    solution,
+    audio,
+}: {
+    channel: string;
+    socket: Socket;
+    attempts: number;
+    marksScored: number;
+    feedback: string;
+    questionIndex: number;
+    maxMarks: number;
+    solution: string;
+    audio: boolean;
+}) {
+    if (attempts === 4 && marksScored! < maxMarks) {
+        const message = OUT_OF_ATTEMPTS_MESSAGE;
+        await sendXMessage({
+            channel: "quiz",
+            socket,
+            message,
+            messageData: {
+                questionIndex,
+                marksScored,
+                questionType: "written",
+                context: "feedback_stream",
             },
+            endData: {
+                feedback: feedback + message,
+                questionIndex,
+                marksScored,
+                type: "end",
+                questionType: "written",
+                context: "new_feedback",
+            },
+            audio,
+        });
+        await sendXMessage({
+            channel: "quiz",
+            socket,
+            message: solution,
+            messageData: {
+                questionIndex,
+                context: "answer_stream",
+            },
+            endData: {
+                answer: solution,
+                questionIndex,
+                context: "new_answer",
+            },
+            audio,
+        });
+    } else {
+        io.to(socket.sessionID!).emit(`${channel}_instruction`, {
+            feedback,
+            questionIndex,
+            marksScored,
+            questionType: "written",
+            type: "end",
+            context: "new_feedback",
         });
     }
-
-    const tokens = encoding.encode(string);
-    let sentenceNumber = 0;
-    return new Promise(async resolve => {
-        for (let i = 0; i < tokens.length; i++) {
-            const tokenEncoding = tokens[i];
-            const bytes = encoding.decode_single_token_bytes(tokenEncoding);
-            const token = Buffer.from(bytes).toString("ascii");
-
-            currentSentence += token;
-
-            if (audioChannel && tokenContainsStopper(token)) {
-                currentSentence = currentSentence.trim();
-                if (currentSentence) {
-                    getAudioData(currentSentence).then(base64 => {
-                        console.log("here");
-                        orderMaintainer!.addData(
-                            {
-                                audio: base64,
-                                first: true,
-                                order: sentenceNumber,
-                            },
-                            sentenceNumber
-                        );
-                        sentenceNumber++;
-                    });
-                }
-
-                currentSentence = "";
-            }
-            socket.emit(streamChannel, token);
-            await new Promise(resolve => setTimeout(resolve, STREAM_SPEED));
-        }
-        socket.emit(streamChannel, STREAM_END_MESSAGE);
-
-        socket.emit("chat_response_data", {
-            response: string,
-        });
-
-        encoding.free();
-        resolve();
-    });
 }
 
 export function tokenContainsStopper(token: string) {
