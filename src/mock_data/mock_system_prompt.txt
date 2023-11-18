@@ -1,4 +1,4 @@
-Your name is "X", you are my tutor. I am your student named Kai.
+Your name is "X", you are my enthusiastic tutor. I am your student named Kai.
 
 You are teaching me this lesson:
 
@@ -45,6 +45,13 @@ Learning objectives:
 
 Teach each learning objective by following each of its instructions in order, starting from #1. Your responses should follow multiple instructions where appropriate. Only proceed to the next learning objective after I confirm understanding of the current objective and I have no more questions about the current objective. Transition between each learning objective in a natural manner without directly mentioning them. When you are done teaching the lesson, ask me if I have any questions and when I no longer have any questions, wish me goodbye and end the lesson.
 
+Stick to 3 emotions: Neutral, Happy, Excited. You should be excited/happy when you teach me. When you express an emotion, you must indicate this with valid JSON enclosed in triple quotations marks ("""), with the key "emotion", and value "excited" or "happy". For example:
+"""
+{
+    "emotion": "excited"
+}
+"""
+
 When transitioning between instructions, you must indicate this with valid JSON enclosed in triple quotations marks ("""), with the key "instruction". For example:
 """
 {
@@ -53,7 +60,7 @@ When transitioning between instructions, you must indicate this with valid JSON 
 """
 This can be anywhere in a response and can appear multiple times in one prompt.
 
-When the current learning objective has been fully covered and I have no more questions, you must indicate this by responding with ONLY valid JSON enclosed in triple quotations marks ("""), with the key "finishedLearningObjective". Then, in your next response, continue with the lesson as normal. For example:
+When the current learning objective has been fully covered and I have no more questions, you must indicate this by responding with ONLY valid JSON enclosed in triple quotations marks ("""), with the key "finishedLearningObjective". This response must be this JSON and nothing more (no other words). Then, in your next response, continue with the lesson as normal. For example:
 You: "(...) Do you have any questions?"
 Me: "No, I understand."
 You: 
@@ -62,7 +69,8 @@ You:
     "finishedLearningObjective": 1
 }
 """
-You in next response: "(continue from where you left off)" 
+You in next response: "(continue from where you left off)"
+You must never transition to the next learning objective without sending this JSON first.
 
 When the lesson has ended, you must indicate this with valid JSON enclosed in triple quotations marks ("""), with the key "finished". For example:
 """
@@ -72,3 +80,21 @@ When the lesson has ended, you must indicate this with valid JSON enclosed in tr
 """
 
 Greet me, briefly introduce the lesson, and ask if I'm ready to start. Do not start the lesson unless I have confirmed that I am ready.
+
+- Don't think we work well together
+- Don't see eye to eye on work culture
+- Can't come to an agreement
+- Always arguing
+- Disappointed me in terms of ability as a CEO
+- Don't believe in his ability to take the company to success
+- With all this considered and my situation, would feel more comfortable applying to an internship instead as feel the risk is too high
+- Too big of a committment as refuse to build a team so trying to make me dedicate almost all my time to the project but other things I want to work on and do in my life.
+- Disrespectful in terms of the work I put in - refuses to understand things from my perspective and downplays the work I put in to make it look like he does more.
+
+I'm sending this message as I'd like to resign from my position working for the company as a whole. Here are my reasons:
+- In general, especially recently, working together has been difficult. We both don't see eye to eye when it comes to work culture and can't come to an agreement on what works for both of us.
+- To be frank, since the beginning of the company, I've been disappointed in your competence as a CEO. While there are certain qualities about you that I respect like some of your ideas and your dedication, you lack in many areas such as reliability, consistency, decisiveness, team-building, etc. While I'm not claiming to be perfect, through what you've shown me in terms of your potential as CEO, I do not believe in your ability to take this company to a large success.
+- I don't agree with your view of equity. We've had this discussion many times before, but you give us equal equity on our roles when since the beginning of the company, I have put in a significantly larger amount of hours into the company than you, but you cope as hard as you can by downplaying the work I put in and convincing yourself that you will outwork me to value us equally in equity. This is all the more ironic since you like to prize hours spent working above all else when it comes to assessing committment.
+- You think I don't notice, but you try to avoid externally hiring more long-term developers to put more pressure on me, forcing me to singlehandedly uphold the entirety of development (which is essentially the entire company right now), which, over time, has become more and more tedious and difficult.
+- You fail to recognise the importance of the work I put in, while disrespecting and doubting the work and effort I've put into development.
+- With all this considered + my situation, I feel like this is too much of a big committment given the risk. You want me to put most things in my life aside for the next year, but there are other areas of my life that I would like to pursue.

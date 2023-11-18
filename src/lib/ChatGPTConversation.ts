@@ -5,7 +5,6 @@ import supabase from "../config/supa";
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
 import { encoding_for_model } from "@dqbd/tiktoken";
-import { generateDataPrompt } from "../prompts/data.prompts";
 import { reduceEachTrailingCommentRange } from "typescript";
 
 interface ConstructorParams {

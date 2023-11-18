@@ -117,25 +117,6 @@ You will be prompted with the student's ${
 
 Respond in second person as if you are speaking to the student.
 `;
-// You must prefix each response on a new line with the word "CORRECT" if the answer is correct or "INCORRECT" if the answer is incorrect. For example:
-// CORRECT
-// (feedback)
-
-export const generateHintsSystemPrompt = (lesson: Lesson, question: string) => `
-You are an extremely intelligent ${
-    SubjectProfessions[lesson.subject]
-} who is providing hints to help a student answer a question. The question may be multiple-choice or written. Here is the question a student has been given:
-
-"${question}"
-
-You must respond with 2 helpful hints to help guide the student to the correct answer to this question. The hints must not make the answer very obvious and should help the student arrive at the answer themselves. Assume that the second provided hint would be revealed after the first.
-
-Respond in this format:
-{
-    "first": "FIRST HINT",
-    "second": "SECOND HINT"
-}
-`;
 
 export const solveWrittenQuestionSystemPrompt = ({
     lesson,
@@ -194,22 +175,6 @@ Justify your choice of code and explain your reasoning before generating the cod
 
 export const multipleChoiceQuestionSystemPrompt =
     "You will be prompted with a multiple choice question. Return a single number which corresponds to the most correct option.";
-
-export const getMarksForWrittenQuestionSystemPrompt = ({
-    lesson,
-    question,
-}: {
-    lesson: Lesson;
-    question: string;
-}) => `
-Here is a ${lesson.education_level} ${
-    lesson.subject
-} exam question from the ${commaSeparate(lesson.exam_boards)} exam boards.
-
-"${question}"
-
-You must return a single number which corresponds to the number of marks this question is worth according to education level and exam board/s.
-`;
 
 export const OUT_OF_ATTEMPTS_MESSAGE =
     " Unfortunately, you have no remaining attempts. A mark scheme will be provided in the answer box.";

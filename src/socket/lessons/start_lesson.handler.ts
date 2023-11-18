@@ -53,7 +53,7 @@ const start_lessonHandler = async (data: ChannelData, socket: Socket) => {
     const NUM_QUESTIONS = 2;
     const onInstruction = async (data: any) => {
         if (data.instruction) {
-            const learningObjective = Math.round(data.instruction);
+            const learningObjective = Math.floor(data.instruction);
             if (learningObjective > lastLearningObjective) {
                 lastLearningObjective = learningObjective;
 

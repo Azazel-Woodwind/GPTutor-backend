@@ -80,8 +80,8 @@ const start_chatHandler = (data: any, socket: Socket) => {
             socket,
             channel: "chat",
             handleError,
-            start: process.env.KAI !== "true",
-            // start: true,
+            // start: process.env.KAI !== "true",
+            start: true,
         });
     }
 };

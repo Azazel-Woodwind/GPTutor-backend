@@ -43,7 +43,7 @@ export async function XSetup({
                         data
                     );
                 } else {
-                    console.log("EMITTING INSTRUCTION:", data.order);
+                    console.log("EMITTING INSTRUCTION:", data);
                     socket.emit(`${channel}_instruction`, data);
                 }
             }),
