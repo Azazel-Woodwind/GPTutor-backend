@@ -2,7 +2,7 @@ import supabase from "../config/supa";
 import { Socket } from "socket.io";
 import OrderMaintainer from "./OrderMaintainer";
 import { getAudioData } from "./tts.utils";
-import { STREAM_END_MESSAGE, STREAM_SPEED } from "./constants";
+import { STREAM_SPEED } from "./constants";
 import { io } from "../server";
 import { OUT_OF_ATTEMPTS_MESSAGE } from "../prompts/quiz.prompts";
 

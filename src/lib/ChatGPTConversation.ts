@@ -1,11 +1,9 @@
 import { EventEmitter } from "events";
 import { fetchSSE } from "./fetch-sse/fetch-sse";
-import { findJsonInString } from "./XUtils";
 import supabase from "../config/supa";
 import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
 import { encoding_for_model } from "@dqbd/tiktoken";
-import { reduceEachTrailingCommentRange } from "typescript";
 
 interface ConstructorParams {
     systemPrompt?: string;
@@ -158,7 +156,7 @@ class ChatGPTConversation {
             };
 
             const body = {
-                model: "gpt-4",
+                model: process.env.MODEL_NAME,
                 messages: this.chatHistory,
                 stream: true,
                 temperature: opts.temperature || 1,
