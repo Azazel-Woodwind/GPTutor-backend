@@ -4,7 +4,7 @@ import startChatHandler from "./chat/start_chat.handler";
 import supabase from "../config/supa";
 import { Socket } from "socket.io";
 import start_quiz_handler from "./quiz/start_quiz_handler";
-import { updateSocketUser } from "./middleware/deserialiseUser";
+import { updateSocketUser } from "./utils/general";
 
 type DataHandler = (data: any, socket: Socket) => void;
 
