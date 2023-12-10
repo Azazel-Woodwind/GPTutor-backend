@@ -1,5 +1,4 @@
-import { GetEmailTemplateCommand } from "@aws-sdk/client-sesv2";
-import { commaSeparate } from "../lib/XUtils";
+import { commaSeparate } from "../utils/general";
 
 const SubjectProfessions = {
     Mathematics: "mathematician",

@@ -1,9 +1,9 @@
 import { EventEmitter } from "events";
 import { fetchSSE } from "./fetch-sse/fetch-sse";
 import supabase from "../config/supa";
-import { exceededTokenQuota, incrementUsage } from "./XUtils";
 import { Socket } from "socket.io";
 import { encoding_for_model } from "@dqbd/tiktoken";
+import { exceededTokenQuota, incrementUsage } from "../utils/service";
 
 interface ConstructorParams {
     systemPrompt?: string;
@@ -110,7 +110,6 @@ class ChatGPTConversation {
 
         const response = await this.generateChatCompletion({
             message,
-            // dataPrompt,
             ...defaultOps,
             ...opts,
         });
@@ -119,7 +118,6 @@ class ChatGPTConversation {
             role: response.role,
             content: response.rawContent!,
         });
-        // console.log(JSON.stringify(this.chatHistory, null, 2));
 
         return response.content;
     }

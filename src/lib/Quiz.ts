@@ -17,9 +17,9 @@ import {
     STREAM_END_MESSAGE,
     STREAM_SPEED,
 } from "./constants";
-import { getRandomNumberBetween } from "./misc";
 import DelayedBuffer from "./DelayedBuffer";
 import { number } from "zod";
+import { getRandomNumberBetween } from "../utils/general";
 
 export default class Quiz {
     public numQuestionsGenerated: number;

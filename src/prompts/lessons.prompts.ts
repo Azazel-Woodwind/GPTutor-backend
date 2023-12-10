@@ -1,4 +1,3 @@
-import { formatChat } from "../lib/XUtils";
 import { emotionInstructions, generalIntroduction } from "./general.prompts";
 
 const formatLearningObjective = (
