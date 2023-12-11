@@ -1,10 +1,10 @@
 import { EventEmitter } from "events";
 import { fetchSSE } from "./fetchServerSentEvent";
-import supabase from "../config/supa";
+import supabase from "../../../config/supa";
 import { Socket } from "socket.io";
 import { encoding_for_model } from "@dqbd/tiktoken";
-import { exceededTokenQuota, incrementUsage } from "../utils/service";
-import { containsSentenceEnder } from "../utils/general";
+import { exceededTokenQuota, incrementUsage } from "../../../utils/service";
+import { containsSentenceEnder } from "../../../utils/general";
 
 const defaultChatCompletionOptions = {
     initialDataSeparator: [`"""`],

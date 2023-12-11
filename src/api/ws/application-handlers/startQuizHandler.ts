@@ -1,8 +1,8 @@
 import { Socket } from "socket.io";
 import crypto from "crypto";
 import { io } from "../../server";
-import Quiz from "../../../lib/Quiz";
-import DelayedBuffer from "../../../lib/DelayedBuffer";
+import Quiz from "../lib/Quiz";
+import DelayedBuffer from "../lib/DelayedBuffer";
 import { onWrittenFeedbackEnd } from "../utils/onWrittenFeedbackEnd";
 
 type ChannelData = {

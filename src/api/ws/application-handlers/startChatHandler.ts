@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import { setUpConversationWithX } from "../utils/setUpConversationWithX";
 import * as introductionPrompts from "../../../prompts/introduction.prompts";
-import ChatGPTConversation from "../../../lib/ChatGPTConversation";
+import ChatGPTConversation from "../lib/ChatGPTConversation";
 import { conversation } from "../../../prompts/conversation.prompts";
 import { sendMessageFromX } from "../utils/sendMessageFromX";
 import updateChatHistory from "../utils/updateChatHistory";

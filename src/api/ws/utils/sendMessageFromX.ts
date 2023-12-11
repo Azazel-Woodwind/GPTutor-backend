@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
-import { STREAM_SPEED } from "../../../lib/constants";
+import { STREAM_SPEED } from "../lib/constants";
 import { io } from "../../server";
-import OrderMaintainer from "../../../lib/OrderMaintainer";
+import OrderMaintainer from "../lib/OrderMaintainer";
 import { getAudioData } from "./tts";
 import { containsSentenceEnder } from "../../../utils/general";
 
