@@ -1,6 +1,7 @@
-import server from "./server";
 import dotenv from "dotenv";
 dotenv.config();
+
+import server from "./api/server";
 
 console.log("Starting server");
 

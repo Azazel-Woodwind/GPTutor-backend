@@ -1,5 +1,4 @@
-import { GetEmailTemplateCommand } from "@aws-sdk/client-sesv2";
-import { commaSeparate } from "../lib/XUtils";
+import { commaSeparate } from "../utils/general";
 
 const SubjectProfessions = {
     Mathematics: "mathematician",
@@ -118,7 +117,7 @@ You will be prompted with the student's ${
 Respond in second person as if you are speaking to the student.
 `;
 
-export const solveWrittenQuestionSystemPrompt = ({
+export const generateMarkScheme = ({
     lesson,
     question,
     marks,
