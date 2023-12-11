@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { Socket } from "socket.io";
 import { updateSocketUser } from "../utils/updateSocketUser";
-dotenv.config();
 
 /**
  * Middleware to deserialise the user ID from the socket using
