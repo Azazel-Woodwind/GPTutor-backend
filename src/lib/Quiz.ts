@@ -37,6 +37,7 @@ import { getRandomNumberBetween } from "../utils/general";
  * Currently, all quiz questions have an image generated with them.
  */
 export default class Quiz {
+    private nextQuestionIndex: number;
     private lastFeedbackQuestionIndex: number;
     private questionGenerator: ChatGPTConversation; // instance for generating questions for the current learning objective
     private currentFeedbackGenerator: ChatGPTConversation | undefined;
@@ -58,6 +59,7 @@ export default class Quiz {
         this.currentQuestionAttempts = 0;
         this.questions = [];
         this.currentLearningObjectiveIndex = -1;
+        this.nextQuestionIndex = 0;
     }
 
     public reset() {
@@ -108,7 +110,7 @@ export default class Quiz {
         }) => void;
         onQuestion?: (question: Question) => void;
     }) {
-        const questionIndex = this.questions.length;
+        const questionIndex = this.nextQuestionIndex++;
         console.log("GENERATING QUESTION", questionIndex);
         if (
             questionIndex >=
@@ -149,7 +151,7 @@ export default class Quiz {
             questionIndex,
         };
 
-        console.log("GENERATED QUESTION:", questionIndex, questionData);
+        // console.log("GENERATED QUESTION:", questionIndex, questionData);
 
         if (onQuestion) {
             onQuestion(this.questions[questionIndex]);

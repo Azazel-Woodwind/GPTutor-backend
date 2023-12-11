@@ -40,7 +40,7 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
     };
 
     const onQuestion = (question: Question) => {
-        console.log("GENERATED QUESTION:", question);
+        // console.log("GENERATED QUESTION:", question);
         io.to(socket.sessionID!).emit("quiz_next_question", {
             ...question,
             questionString: question.question,
