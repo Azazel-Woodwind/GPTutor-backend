@@ -4,6 +4,13 @@ import { Socket } from "socket.io";
 import { updateSocketUser } from "../utils/updateSocketUser";
 dotenv.config();
 
+/**
+ * Middleware to deserialise the user ID from the socket using
+ * the JWT token provided in the socket handshake.
+ *
+ * @param socket - The socket.io socket instance
+ * @param next - The next function to call
+ */
 const deserialiseUser = async (socket: Socket, next: any) => {
     // console.log(socket);
 
@@ -25,7 +32,7 @@ const deserialiseUser = async (socket: Socket, next: any) => {
 
         await updateSocketUser(socket, userID as string);
 
-        socket.emit("authenticated", true);
+        socket.emit("authenticated", true); // tell the client they are authenticated
         // console.log(`Authentication successful with user: ${user.email}`);
         next();
     } catch (error) {

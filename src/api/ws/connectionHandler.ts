@@ -2,7 +2,7 @@ import transcribeAudioHandler from "./application-handlers/transcribeAudioHandle
 import startLessonHandler from "./application-handlers/startLessonHandler";
 import startChatHandler from "./application-handlers/startChatHandler";
 import { Socket } from "socket.io";
-import start_quiz_handler from "./application-handlers/startQuizHandler";
+import startQuizHandler from "./application-handlers/startQuizHandler";
 import { updateSocketUser } from "./utils/updateSocketUser";
 import supabase from "../../config/supa";
 
@@ -56,7 +56,7 @@ const connectionHandler = async (socket: Socket) => {
         // Lessons API
         socket.on("start_lesson", route(startLessonHandler));
         // Quiz API
-        socket.on("start_quiz", route(start_quiz_handler));
+        socket.on("start_quiz", route(startQuizHandler));
 
         // On disconnect
         socket.on("disconnect", async reason => {

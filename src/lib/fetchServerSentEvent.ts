@@ -1,11 +1,12 @@
 import { createParser } from "eventsource-parser";
-
-import * as types from "./types";
-import { fetch as globalFetch } from "./fetch";
-import { streamAsyncIterable } from "./stream-async-iterable";
-import fs from "fs";
-import { AbortError } from "node-fetch";
-
+import { streamAsyncIterable } from "../utils/general";
+/**
+ * Fetches a Server-Sent Event stream and parses it. Attempts a maximum of 3 times.
+ * @param url The URL to fetch.
+ * @param options The options to pass to `fetch`.
+ * @returns The response.
+ * @throws {Error} If the request fails.
+ */
 export async function fetchSSE(
     url: string,
     options: Parameters<typeof fetch>[1] & {
@@ -14,24 +15,20 @@ export async function fetchSSE(
             fetchOptions: Parameters<typeof fetch>[1]
         ) => void;
         abort?: (reason?: string) => void;
-    },
-    fetch: types.FetchFn = globalFetch
+    }
 ) {
     const { onMessage, updateAbortController, abort, ...fetchOptions } =
         options;
-    // console.log(fetchOptions);
-    // fs.writeFileSync(
-    //     "/tmp/fetchOptions.json",
-    //     JSON.stringify(fetchOptions, null, 2)
-    // );
+
     let res: Response | undefined;
     let count = 0;
     while (1) {
         if (count === 3) {
-            throw new Error("ChatGPT error: timeout");
+            throw new Error("Failed to fetch: too many attempts");
         }
         let timeout: NodeJS.Timeout;
 
+        // update abort controller as they can only be used once per request
         if (updateAbortController && abort) {
             updateAbortController(fetchOptions);
             timeout = setTimeout(() => {
@@ -53,12 +50,14 @@ export async function fetchSSE(
             console.log("FETCH ERROR:", error);
             console.log("ERROR NAME:", error.name);
             if (fetchOptions.signal?.aborted) {
+                // if the request was aborted
                 if (fetchOptions.signal.reason === "timeout") {
+                    // due to a timeout
                     console.log("REQUEST TIMEOUT, TRYING AGAIN");
                     count++;
-                    continue;
+                    continue; // try again
                 } else {
-                    throw new types.ChatGPTError("request aborted");
+                    throw new Error("Failed to fetch: aborted");
                 }
             }
             throw error;
@@ -79,58 +78,21 @@ export async function fetchSSE(
                 reason = res.statusText;
             }
 
-            const msg = `ChatGPT error ${res.status}: ${reason}`;
-            const error = new types.ChatGPTError(msg);
-            error.statusCode = res.status;
-            error.statusText = res.statusText;
-            throw error;
+            throw new Error(`Failed to fetch ${res.status}: ${reason}`);
         }
     }
 
-    // const res = await fetch(url, fetchOptions);
-
-    // if (!res.ok) {
-    //     let reason: string;
-
-    //     try {
-    //         reason = await res.text();
-    //     } catch (err) {
-    //         reason = res.statusText;
-    //     }
-
-    //     const msg = `ChatGPT error ${res.status}: ${reason}`;
-    //     const error = new types.ChatGPTError(msg);
-    //     error.statusCode = res.status;
-    //     error.statusText = res.statusText;
-    //     throw error;
-    // }
-
+    // creates a parser for server events and calls the onMessage callback with the event data
     const parser = createParser(event => {
         if (event.type === "event") {
             onMessage(event.data);
         }
     });
 
-    if (!res!.body?.getReader) {
-        // Vercel polyfills `fetch` with `node-fetch`, which doesn't conform to
-        // web standards, so this is a workaround...
-        const body: NodeJS.ReadableStream = res!.body as any;
-
-        if (!body.on || !body.read) {
-            throw new types.ChatGPTError('unsupported "fetch" implementation');
-        }
-
-        body.on("readable", () => {
-            let chunk: string | Buffer;
-            while (null !== (chunk = body.read())) {
-                parser.feed(chunk.toString());
-            }
-        });
-    } else {
-        for await (const chunk of streamAsyncIterable(res!.body)) {
-            const str = new TextDecoder().decode(chunk);
-            parser.feed(str);
-        }
+    // loop thorugh the chunks from the server stream and feed them to the parser
+    for await (const chunk of streamAsyncIterable(res!.body!)) {
+        const str = new TextDecoder().decode(chunk);
+        parser.feed(str);
     }
 
     // console.log("REAL RESPONSE:", res);

@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { sendMessageToX } from "./sendMessageToX";
+import { sendMessageFromX } from "./sendMessageFromX";
 import { OUT_OF_ATTEMPTS_MESSAGE } from "../../../prompts/quiz.prompts";
 import { io } from "../../server";
 
@@ -26,7 +26,7 @@ export async function onWrittenFeedbackEnd({
 }) {
     if (attempts === 4 && marksScored! < maxMarks) {
         const message = OUT_OF_ATTEMPTS_MESSAGE;
-        await sendMessageToX({
+        await sendMessageFromX({
             channel: "quiz",
             socket,
             message,
@@ -46,7 +46,7 @@ export async function onWrittenFeedbackEnd({
             },
             audio,
         });
-        await sendMessageToX({
+        await sendMessageFromX({
             channel: "quiz",
             socket,
             message: solution,

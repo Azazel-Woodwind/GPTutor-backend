@@ -117,7 +117,7 @@ You will be prompted with the student's ${
 Respond in second person as if you are speaking to the student.
 `;
 
-export const solveWrittenQuestionSystemPrompt = ({
+export const generateMarkScheme = ({
     lesson,
     question,
     marks,

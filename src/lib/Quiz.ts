@@ -9,29 +9,47 @@ import {
     generateQuizQuestionsSystemPrompt,
     generateWrittenFeedbackMessage,
     multipleChoiceQuestionSystemPrompt,
-    solveWrittenQuestionSystemPrompt,
+    generateMarkScheme,
 } from "../prompts/quiz.prompts";
 import {
     MAXIMUM_WRITTEN_QUESTION_MARKS,
     MINIMUM_WRITTEN_QUESTION_MARKS,
-    STREAM_END_MESSAGE,
-    STREAM_SPEED,
+    QUESTIONS_PER_LEARNING_OBJECTIVE,
 } from "./constants";
-import DelayedBuffer from "./DelayedBuffer";
-import { number } from "zod";
 import { getRandomNumberBetween } from "../utils/general";
 
+/**
+ * A class that manages a quiz for a given lesson.
+ *
+ * The current way a quiz works, is that for each learning objective in the lesson,
+ * a multiple choice question is generated, followed by a written question.
+ *
+ * For a multiple choice question, users cannot proceed to the next question until
+ * they have selected the correct answer. If they select the wrong answer, they are
+ * given feedback on why their answer is wrong. If they select the correct answer,
+ * they are given feedback and allowed to proceed to the next question.
+ *
+ * For a written question, users cannot proceed to the next question until they have
+ * written a solution that scores full marks or until they have run out of attempts.
+ * If they run out of attempts, they are given a modal solution with feedback. If they
+ * score full marks, they are given feedback and allowed to proceed to the next question.
+ *
+ * Currently, all quiz questions have an image generated with them.
+ */
 export default class Quiz {
-    public numQuestionsGenerated: number;
     private lastFeedbackQuestionIndex: number;
-    private questionGenerator: ChatGPTConversation;
+    private questionGenerator: ChatGPTConversation; // instance for generating questions for the current learning objective
     private currentFeedbackGenerator: ChatGPTConversation | undefined;
     private currentQuestionAttempts: number;
-    public questions: Question[];
+    private questions: Question[]; // stores the questions that have been generated so far
     private currentLearningObjectiveIndex: number;
 
+    /**
+     * @constructor
+     * @param lesson - The lesson for which the quiz is being generated.
+     * @param socket - The socket of the user's current session.
+     */
     constructor(public lesson: Lesson, private socket: Socket) {
-        this.numQuestionsGenerated = 0;
         this.lastFeedbackQuestionIndex = 0;
         this.questionGenerator = new ChatGPTConversation({
             socket,
@@ -47,21 +65,39 @@ export default class Quiz {
         this.currentFeedbackGenerator?.cleanUp();
     }
 
-    public changeQuestion(questionIndex: number) {
+    public changeQuestion() {
         this.currentFeedbackGenerator?.cleanUp();
         // this.lastFeedbackQuestionIndex++;
     }
 
+    public hasGeneratedAllQuestions() {
+        return (
+            this.questions.length ===
+            QUESTIONS_PER_LEARNING_OBJECTIVE *
+                this.lesson.learning_objectives.length
+        );
+    }
+
+    public length() {
+        return this.questions.length;
+    }
+
+    /**
+     * Generates the next question for the quiz.
+     *
+     * @param questionType - The type of question to generate (written or multiple choice).
+     * @param learningObjectiveIndex - The index of the learning objective for which the question is being generated.
+     * @param hasImage - Whether the question has an image.
+     * @param onImage - A callback to execute when the question image is generated.
+     * @param onQuestion - A callback to execute when the question is generated.
+     * @param final - Whether the question is the final question in the quiz.
+     * @returns The generated question.
+     */
     public async generateNextQuestion({
-        questionType,
-        learningObjectiveIndex,
         hasImage,
         onImage,
         onQuestion,
-        final = false,
     }: {
-        questionType: "written" | "multiple";
-        learningObjectiveIndex: number;
         hasImage: boolean;
         onImage?: ({
             imageHTML,
@@ -71,16 +107,39 @@ export default class Quiz {
             questionIndex: number;
         }) => void;
         onQuestion?: (question: Question) => void;
-        final?: boolean;
     }) {
-        // console.log("GENERATING NEXT QUESTION");
-        const questionIndex = this.numQuestionsGenerated++;
+        const questionIndex = this.questions.length;
+        console.log("GENERATING QUESTION", questionIndex);
+        if (
+            questionIndex >=
+            QUESTIONS_PER_LEARNING_OBJECTIVE *
+                this.lesson.learning_objectives.length
+        ) {
+            throw new Error("Question number out of bounds");
+        }
+
+        const learningObjectiveIndex = Math.floor(
+            questionIndex / QUESTIONS_PER_LEARNING_OBJECTIVE
+        );
+        const learningObjectiveQuestionIndex =
+            questionIndex % QUESTIONS_PER_LEARNING_OBJECTIVE; // 0 for multiple choice, 1 for written
+        const questionType =
+            learningObjectiveQuestionIndex === 1 ? "written" : "multiple";
+        const final =
+            questionIndex ===
+            QUESTIONS_PER_LEARNING_OBJECTIVE *
+                this.lesson.learning_objectives.length -
+                1;
+
         const questionData = await this.generateQuestion({
             questionType,
             learningObjectiveIndex,
             hasImage,
-            onImage,
-            questionIndex,
+            onImage: imageHTML => {
+                if (onImage) {
+                    onImage({ imageHTML, questionIndex });
+                }
+            },
         });
 
         this.questions[questionIndex] = {
@@ -106,26 +165,32 @@ export default class Quiz {
         return this.questions[questionIndex];
     }
 
+    /**
+     * Generates a question for the quiz.
+     *
+     * @param questionType - The type of question to generate (written or multiple choice).
+     * @param learningObjectiveIndex - The index of the learning objective for which the question is being generated.
+     * @param hasImage - Whether the question has an image.
+     * @param onImage - A callback to execute when the question image is generated.
+     * @returns The generated question.
+     *
+     * @remarks
+     * This method is called by {@link Quiz.generateNextQuestion}.
+     */
     public async generateQuestion({
         questionType,
         learningObjectiveIndex,
         hasImage,
         onImage,
-        questionIndex,
     }: {
         questionType: "written" | "multiple";
         learningObjectiveIndex: number;
         hasImage: boolean;
-        onImage?: ({
-            imageHTML,
-            questionIndex,
-        }: {
-            imageHTML: string;
-            questionIndex: number;
-        }) => void;
-        questionIndex: number;
+        onImage: (imageHTML: string) => void;
     }) {
         if (learningObjectiveIndex !== this.currentLearningObjectiveIndex) {
+            // if the multiple choice and written question for the previous learning objective have been generated
+            // and the current learning objective is different from the previous one
             this.questionGenerator.reset(
                 generateQuizQuestionsSystemPrompt(
                     this.lesson,
@@ -138,6 +203,7 @@ export default class Quiz {
         let message = questionType;
         let marks = 1;
         if (questionType === "written") {
+            // randomly generate the number of marks for the written question
             marks = getRandomNumberBetween(
                 MINIMUM_WRITTEN_QUESTION_MARKS,
                 MAXIMUM_WRITTEN_QUESTION_MARKS
@@ -172,10 +238,7 @@ export default class Quiz {
             });
 
             imageGenerator.messageEmitter.on("data", async ({ data }) => {
-                onImage({
-                    imageHTML: data,
-                    questionIndex,
-                });
+                onImage(data);
 
                 imageGenerator.cleanUp();
             });
@@ -195,12 +258,20 @@ export default class Quiz {
         };
     }
 
+    /**
+     * Generates a solution for a given question. This is in the form of a single number if
+     * the question is a multiple choice question, or a mark scheme if the question is a written
+     * question.
+     *
+     * @param question - The question for which the solution is being generated.
+     * @returns The generated solution.
+     */
     public async generateSolution(question: Question) {
         let systemPrompt = "";
         if (question.questionType === "multiple") {
             systemPrompt = multipleChoiceQuestionSystemPrompt;
         } else {
-            systemPrompt = solveWrittenQuestionSystemPrompt({
+            systemPrompt = generateMarkScheme({
                 lesson: this.lesson,
                 question: question.question,
                 marks: question.marks,
@@ -227,6 +298,11 @@ export default class Quiz {
         return solution.trim();
     }
 
+    /**
+     * Waits for a question to be solved.
+     *
+     * @param questionIndex - The index of the question to wait for.
+     */
     public async waitForQuestionToBeSolved(questionIndex: number) {
         return new Promise<void>(resolve => {
             const interval = setInterval(() => {
@@ -241,6 +317,13 @@ export default class Quiz {
         });
     }
 
+    /**
+     * Prepares for feedback for a given question.
+     *
+     *
+     * @param isMultipleChoice - Whether the question is a multiple choice question.
+     * @param questionIndex - The index of the question for which feedback is being prepared.
+     */
     public async prepareForFeedback({
         isMultipleChoice,
         questionIndex,
@@ -253,6 +336,7 @@ export default class Quiz {
             !this.currentFeedbackGenerator ||
             questionIndex !== this.lastFeedbackQuestionIndex
         ) {
+            // if the feedback generator has not been initialised or if the question has changed
             this.currentQuestionAttempts = 0;
             const systemPrompt = generateFeedbackSystemPrompt(
                 this.lesson,
@@ -274,6 +358,15 @@ export default class Quiz {
         this.currentQuestionAttempts++;
     }
 
+    /**
+     * Generates feedback for a written question.
+     *
+     * @param studentSolution - The student's solution to the question.
+     * @param questionIndex - The index of the question for which feedback is being generated.
+     * @param onDelta - A callback to execute when a token is received.
+     * @param onSentence - A callback to execute when a sentence is received.
+     * @param onEnd - A callback to execute when the feedback generation is complete.
+     */
     public async generateWrittenQuestionFeedback({
         studentSolution,
         questionIndex,
@@ -301,10 +394,12 @@ export default class Quiz {
             feedback,
             marksScored,
             attempts,
+            question,
         }: {
             feedback: string;
             marksScored: number;
             attempts: number;
+            question: Question;
         }) => void;
     }) {
         await this.prepareForFeedback({
@@ -362,6 +457,7 @@ export default class Quiz {
                         feedback: response,
                         marksScored,
                         attempts: this.currentQuestionAttempts,
+                        question: this.questions[questionIndex],
                     });
                 }
             );
@@ -375,6 +471,15 @@ export default class Quiz {
         console.log("QUESTION NUMBER IS:", questionIndex);
     }
 
+    /**
+     * Generates feedback for a multiple choice question.
+     *
+     * @param studentChoiceIndex - The index of the student's choice.
+     * @param questionIndex - The index of the question for which feedback is being generated.
+     * @param onDelta - A callback to execute when a delta is generated.
+     * @param onSentence - A callback to execute when a sentence is generated.
+     * @param onEnd - A callback to execute when the feedback generation is complete.
+     */
     public async generateMultipleChoiceQuestionFeedback({
         studentChoiceIndex,
         questionIndex,
@@ -463,6 +568,18 @@ export default class Quiz {
         });
     }
 
+    /**
+     * Generates critical analysis for a given answer to a question using the question's mark scheme.
+     * This should come in the form of a number indicating the number of marks the student's solution
+     * would be awarded in an exam, followed by comprehensive written analysis on a new line.
+     *
+     * @remarks
+     * This method is and should only be called by {@link Quiz.generateWrittenQuestionFeedback}.
+     *
+     * @param question - The question for which the answer is being analysed.
+     * @param studentSolution - The student's solution to the question.
+     * @returns The generated analysis.
+     */
     public async generateAnswerAnalysis({
         question,
         studentSolution,

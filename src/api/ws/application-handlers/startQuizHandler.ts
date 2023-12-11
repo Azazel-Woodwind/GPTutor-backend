@@ -2,9 +2,7 @@ import { Socket } from "socket.io";
 import crypto from "crypto";
 import { io } from "../../server";
 import Quiz from "../../../lib/Quiz";
-import generateNextQuestion from "../utils/generateNextQuestion";
 import DelayedBuffer from "../../../lib/DelayedBuffer";
-import { STREAM_SPEED } from "../../../lib/constants";
 import { onWrittenFeedbackEnd } from "../utils/onWrittenFeedbackEnd";
 
 type ChannelData = {
@@ -26,14 +24,40 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
 
     const quiz = new Quiz(data.lesson, socket);
 
+    const onImage = ({
+        imageHTML,
+        questionIndex,
+    }: {
+        imageHTML: string;
+        questionIndex: number;
+    }) => {
+        console.log("GENERATED IMAGE FOR QUESTION", questionIndex);
+        // console.log("IMAGE HTML:", data);
+        io.to(socket.sessionID!).emit("quiz_question_image", {
+            imageHTML,
+            questionIndex,
+        });
+    };
+
+    const onQuestion = (question: Question) => {
+        console.log("GENERATED QUESTION:", question);
+        io.to(socket.sessionID!).emit("quiz_next_question", {
+            ...question,
+            questionString: question.question,
+            questionIndex: question.questionIndex,
+        });
+    };
+
     socket.on("quiz_change_question", async questionIndex => {
         console.log("CHANGING TO QUESTION", questionIndex);
-        quiz.changeQuestion(questionIndex);
+        quiz.changeQuestion();
 
-        if (!quiz.questions[questionIndex]) {
-            throw new Error("Question number out of bounds");
-        } else if (!quiz.questions[questionIndex].final) {
-            generateNextQuestion({ quiz, socket });
+        if (quiz.hasGeneratedAllQuestions()) {
+            quiz.generateNextQuestion({
+                hasImage: true,
+                onImage,
+                onQuestion,
+            });
         }
     });
 
@@ -49,13 +73,9 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
     });
 
     socket.on("quiz_request_written_feedback", ({ message, questionIndex }) => {
-        const buffer = new DelayedBuffer(
-            (callback: Function) => {
-                callback();
-            },
-            0,
-            STREAM_SPEED
-        );
+        const buffer = new DelayedBuffer((callback: Function) => {
+            callback();
+        }, 0);
 
         quiz.generateWrittenQuestionFeedback({
             studentSolution: message,
@@ -72,7 +92,7 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
                     });
                 });
             },
-            onEnd({ feedback, marksScored, attempts }) {
+            onEnd({ feedback, marksScored, attempts, question }) {
                 buffer.addData(() => {
                     onWrittenFeedbackEnd({
                         channel: "quiz",
@@ -81,8 +101,8 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
                         marksScored,
                         attempts,
                         questionIndex,
-                        maxMarks: quiz.questions[questionIndex].marks,
-                        solution: quiz.questions[questionIndex].solution!,
+                        maxMarks: question.marks,
+                        solution: question.solution!,
                         audio: false,
                     });
                 });
@@ -94,20 +114,16 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
         "quiz_request_multiple_choice_feedback",
         ({ message, questionIndex }) => {
             console.log("RECEIVED ANSWER:", message);
-            console.log("FOR QUESTION:", quiz.questions[questionIndex]);
+            console.log("FOR QUESTION:", questionIndex);
 
-            const buffer = new DelayedBuffer(
-                (data: any) => {
-                    io.to(socket.sessionID!).emit(`quiz_instruction`, {
-                        questionIndex,
-                        choiceIndex: message,
-                        questionType: "multiple",
-                        ...data,
-                    });
-                },
-                0,
-                STREAM_SPEED
-            );
+            const buffer = new DelayedBuffer((data: any) => {
+                io.to(socket.sessionID!).emit(`quiz_instruction`, {
+                    questionIndex,
+                    choiceIndex: message,
+                    questionType: "multiple",
+                    ...data,
+                });
+            }, 0);
 
             quiz.generateMultipleChoiceQuestionFeedback({
                 studentChoiceIndex: message,
@@ -133,8 +149,13 @@ const startQuizHandler = async (data: ChannelData, socket: Socket) => {
     );
 
     // send two questions
-    generateNextQuestion({ quiz, socket });
-    generateNextQuestion({ quiz, socket });
+    for (let i = 0; i < 2; i++) {
+        quiz.generateNextQuestion({
+            hasImage: true,
+            onImage,
+            onQuestion,
+        });
+    }
 };
 
 export default startQuizHandler;

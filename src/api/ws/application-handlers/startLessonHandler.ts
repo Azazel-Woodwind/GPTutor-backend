@@ -6,7 +6,7 @@ import ChatGPTConversation from "../../../lib/ChatGPTConversation";
 import { lesson } from "../../../prompts/lessons.prompts";
 import Quiz from "../../../lib/Quiz";
 import { getAudioData } from "../utils/tts";
-import { sendMessageToX } from "../utils/sendMessageToX";
+import { sendMessageFromX } from "../utils/sendMessageFromX";
 import OrderMaintainer from "../../../lib/OrderMaintainer";
 import { onWrittenFeedbackEnd } from "../utils/onWrittenFeedbackEnd";
 import { setUpConversationWithX } from "../utils/setUpConversationWithX";
@@ -55,8 +55,6 @@ const startLessonHandler = async (data: ChannelData, socket: Socket) => {
 
                 for (let i = 0; i < NUM_QUESTIONS; i++) {
                     quiz.generateNextQuestion({
-                        questionType: "multiple",
-                        learningObjectiveIndex: learningObjective - 1,
                         hasImage: false,
                         onQuestion(question: Question) {
                             io.to(socket.sessionID!).emit(
@@ -92,7 +90,7 @@ const startLessonHandler = async (data: ChannelData, socket: Socket) => {
             console.log("FINISHED LEARNING OBJECTIVE:", data);
             const message =
                 "Great! Let's test your understanding with some questions.";
-            await sendMessageToX({
+            await sendMessageFromX({
                 channel: "lesson",
                 socket,
                 message,
@@ -107,11 +105,11 @@ const startLessonHandler = async (data: ChannelData, socket: Socket) => {
 
     socket.on("lesson_change_question", async questionIndex => {
         console.log("CHANGING TO QUESTION", questionIndex);
-        quiz.changeQuestion(questionIndex);
+        quiz.changeQuestion();
     });
 
     socket.on("lesson_get_audio_for_question", questionIndex => {
-        if (quiz.questions.length > questionIndex) {
+        if (quiz.length() > questionIndex) {
             io.to(socket.sessionID!).emit("lesson_instruction", {
                 type: "audio",
                 audioContent: questionAudioData[questionIndex % NUM_QUESTIONS],
@@ -155,7 +153,7 @@ const startLessonHandler = async (data: ChannelData, socket: Socket) => {
                             console.error(error);
                         });
                 },
-                async onEnd({ feedback, marksScored, attempts }) {
+                async onEnd({ feedback, marksScored, attempts, question }) {
                     orderMaintainer.addData(() => {
                         onWrittenFeedbackEnd({
                             channel: "lesson",
@@ -164,8 +162,8 @@ const startLessonHandler = async (data: ChannelData, socket: Socket) => {
                             marksScored,
                             attempts,
                             questionIndex,
-                            maxMarks: quiz.questions[questionIndex].marks,
-                            solution: quiz.questions[questionIndex].solution!,
+                            maxMarks: question.marks,
+                            solution: question.solution!,
                             audio: true,
                         });
                     }, order);

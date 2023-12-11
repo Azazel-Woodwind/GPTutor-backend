@@ -3,7 +3,7 @@ import { setUpConversationWithX } from "../utils/setUpConversationWithX";
 import * as introductionPrompts from "../../../prompts/introduction.prompts";
 import ChatGPTConversation from "../../../lib/ChatGPTConversation";
 import { conversation } from "../../../prompts/conversation.prompts";
-import { sendMessageToX } from "../utils/sendMessageToX";
+import { sendMessageFromX } from "../utils/sendMessageFromX";
 import updateChatHistory from "../utils/updateChatHistory";
 
 const startChatHandler = (data: any, socket: Socket) => {
@@ -34,7 +34,7 @@ const startChatHandler = (data: any, socket: Socket) => {
             console.log("Received message from user, continuing introduction");
 
             response = message;
-            sendMessageToX({
+            sendMessageFromX({
                 channel: "chat",
                 socket,
                 message: introductionPrompts
@@ -45,7 +45,7 @@ const startChatHandler = (data: any, socket: Socket) => {
 
         socket.on(`chat_moved_to_lessons`, async () => {
             console.log("User moved to hub, continuing introduction");
-            sendMessageToX({
+            sendMessageFromX({
                 channel: "chat",
                 socket,
                 message: introductionPrompts
@@ -68,7 +68,7 @@ const startChatHandler = (data: any, socket: Socket) => {
                 start: process.env.KAI !== "true",
             });
         });
-        sendMessageToX({
+        sendMessageFromX({
             channel: "chat",
             socket,
             message: introductionPrompts

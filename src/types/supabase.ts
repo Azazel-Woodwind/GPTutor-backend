@@ -3,7 +3,7 @@ export type Json =
   | number
   | boolean
   | null
-  | { [key: string]: Json }
+  | { [key: string]: Json | undefined }
   | Json[]
 
 export interface Database {
@@ -22,6 +22,15 @@ export interface Database {
           access_level?: number
           role?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "access_levels_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["role"]
+          }
+        ]
       }
       education_levels: {
         Row: {
@@ -33,6 +42,7 @@ export interface Database {
         Update: {
           education_level?: string
         }
+        Relationships: []
       }
       exam_boards: {
         Row: {
@@ -44,14 +54,48 @@ export interface Database {
         Update: {
           exam_board_name?: string
         }
+        Relationships: []
+      }
+      learning_objective_instructions: {
+        Row: {
+          created_at: string | null
+          id: string
+          instruction: string | null
+          learning_objective_id: string | null
+          media_link: string | null
+          number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          instruction?: string | null
+          learning_objective_id?: string | null
+          media_link?: string | null
+          number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instruction?: string | null
+          learning_objective_id?: string | null
+          media_link?: string | null
+          number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_objective_instructions_learning_objective_id_fkey"
+            columns: ["learning_objective_id"]
+            isOneToOne: false
+            referencedRelation: "learning_objectives"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       learning_objectives: {
         Row: {
           created_at: string | null
           description: string
           id: string
-          image_description: string
-          image_link: string | null
           lesson_id: string | null
           number: number | null
         }
@@ -59,8 +103,6 @@ export interface Database {
           created_at?: string | null
           description?: string
           id?: string
-          image_description?: string
-          image_link?: string | null
           lesson_id?: string | null
           number?: number | null
         }
@@ -68,11 +110,18 @@ export interface Database {
           created_at?: string | null
           description?: string
           id?: string
-          image_description?: string
-          image_link?: string | null
           lesson_id?: string | null
           number?: number | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "learning_objectives_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       lesson_statuses: {
         Row: {
@@ -84,6 +133,7 @@ export interface Database {
         Update: {
           status?: string
         }
+        Relationships: []
       }
       lessons: {
         Row: {
@@ -119,6 +169,36 @@ export interface Database {
           subject?: string | null
           title?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_education_level_fkey"
+            columns: ["education_level"]
+            isOneToOne: false
+            referencedRelation: "education_levels"
+            referencedColumns: ["education_level"]
+          },
+          {
+            foreignKeyName: "lessons_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "lesson_statuses"
+            referencedColumns: ["status"]
+          },
+          {
+            foreignKeyName: "lessons_subject_fkey"
+            columns: ["subject"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["subject"]
+          }
+        ]
       }
       lessons_on_exam_boards: {
         Row: {
@@ -133,6 +213,61 @@ export interface Database {
           exam_board_name?: string
           lesson_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_on_exam_boards_exam_board_name_fkey"
+            columns: ["exam_board_name"]
+            isOneToOne: false
+            referencedRelation: "exam_boards"
+            referencedColumns: ["exam_board_name"]
+          },
+          {
+            foreignKeyName: "lessons_on_exam_boards_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      quiz_scores: {
+        Row: {
+          created_at: string | null
+          lesson_id: string
+          max_score: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          lesson_id: string
+          max_score: number
+          score: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          lesson_id?: string
+          max_score?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_scores_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       roles: {
         Row: {
@@ -144,6 +279,7 @@ export interface Database {
         Update: {
           role?: string
         }
+        Relationships: []
       }
       subjects: {
         Row: {
@@ -155,6 +291,7 @@ export interface Database {
         Update: {
           subject?: string
         }
+        Relationships: []
       }
       usage_plans: {
         Row: {
@@ -169,6 +306,7 @@ export interface Database {
           max_daily_tokens?: number
           plan?: string
         }
+        Relationships: []
       }
       users: {
         Row: {
@@ -178,6 +316,7 @@ export interface Database {
           first_name: string
           id: string
           last_name: string
+          new: boolean
           req_audio_data: boolean
           usage_plan: string
         }
@@ -188,6 +327,7 @@ export interface Database {
           first_name: string
           id: string
           last_name: string
+          new?: boolean
           req_audio_data?: boolean
           usage_plan?: string
         }
@@ -198,9 +338,40 @@ export interface Database {
           first_name?: string
           id?: string
           last_name?: string
+          new?: boolean
           req_audio_data?: boolean
           usage_plan?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "users_access_level_fkey"
+            columns: ["access_level"]
+            isOneToOne: false
+            referencedRelation: "access_levels"
+            referencedColumns: ["access_level"]
+          },
+          {
+            foreignKeyName: "users_education_level_fkey"
+            columns: ["education_level"]
+            isOneToOne: false
+            referencedRelation: "education_levels"
+            referencedColumns: ["education_level"]
+          },
+          {
+            foreignKeyName: "users_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_usage_plan_fkey"
+            columns: ["usage_plan"]
+            isOneToOne: false
+            referencedRelation: "usage_plans"
+            referencedColumns: ["plan"]
+          }
+        ]
       }
       users_on_subjects: {
         Row: {
@@ -215,6 +386,46 @@ export interface Database {
           subject_name?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "users_on_subjects_subject_name_fkey"
+            columns: ["subject_name"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["subject"]
+          },
+          {
+            foreignKeyName: "users_on_subjects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      waiting_list_users: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_student: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          is_student: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_student?: boolean
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -234,6 +445,15 @@ export interface Database {
           first_name?: string | null
           last_name?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "users_education_level_fkey"
+            columns: ["education_level"]
+            isOneToOne: false
+            referencedRelation: "education_levels"
+            referencedColumns: ["education_level"]
+          }
+        ]
       }
     }
     Functions: {
@@ -277,6 +497,10 @@ export interface Database {
           user_id: string
           delta: number
         }
+        Returns: undefined
+      }
+      set_used_user: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       toggle_is_published: {
@@ -341,3 +565,83 @@ export interface Database {
     }
   }
 }
+
+export type Tables<
+  PublicTableNameOrOptions extends
+    | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    : never = never
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] &
+      Database["public"]["Views"])
+  ? (Database["public"]["Tables"] &
+      Database["public"]["Views"])[PublicTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : never
+
+export type TablesInsert<
+  PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+  ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : never
+
+export type TablesUpdate<
+  PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+  ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : never
+
+export type Enums<
+  PublicEnumNameOrOptions extends
+    | keyof Database["public"]["Enums"]
+    | { schema: keyof Database },
+  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
+  ? Database["public"]["Enums"][PublicEnumNameOrOptions]
+  : never

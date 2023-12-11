@@ -3,8 +3,9 @@ import { STREAM_SPEED } from "../../../lib/constants";
 import { io } from "../../server";
 import OrderMaintainer from "../../../lib/OrderMaintainer";
 import { getAudioData } from "./tts";
+import { containsSentenceEnder } from "../../../utils/general";
 
-export async function sendMessageToX({
+export async function sendMessageFromX({
     channel,
     socket,
     message,
@@ -54,7 +55,7 @@ export async function sendMessageToX({
         let order = 0;
         for (let char of message) {
             // console.log(char);
-            if (["\n", ".", "?", "!"].includes(char)) {
+            if (containsSentenceEnder(char)) {
                 const substring = message.slice(front, rear + 1);
                 console.log("SUBSTRING:", substring);
                 if (substring.trim()) {

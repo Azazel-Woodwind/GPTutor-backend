@@ -1,6 +1,13 @@
 import { Socket } from "socket.io";
 import supabase from "../../../config/supa";
 
+/**
+ * Fetches the user from supabase and updates the user
+ * property of the socket.
+ *
+ * @param socket - The socket.io socket instance
+ * @param userID - The user ID to fetch
+ */
 export const updateSocketUser = async (socket: Socket, userID?: string) => {
     if (!userID) {
         userID = socket.user?.id;
@@ -20,7 +27,7 @@ export const updateSocketUser = async (socket: Socket, userID?: string) => {
         .from("users")
         .select("*, usage_plans (max_daily_tokens)")
         .eq("id", userID)
-        .single();
+        .single(); // get user data to attach to socket
 
     if (user_error) {
         console.log("error:", user_error);
@@ -37,7 +44,7 @@ export const updateSocketUser = async (socket: Socket, userID?: string) => {
         ...user,
         ...rest,
         usage_plans: usage_plans as { max_daily_tokens: number },
-    } as User;
+    } as User; // attach user data to socket
 
     // console.log("socket.user:", socket.user);
 };
