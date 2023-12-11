@@ -1,5 +1,5 @@
 import { createParser } from "eventsource-parser";
-import { streamAsyncIterable } from "../utils/general";
+import { streamAsyncIterable } from "../../../utils/general";
 /**
  * Fetches a Server-Sent Event stream and parses it. Attempts a maximum of 3 times.
  * @param url The URL to fetch.

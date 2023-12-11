@@ -1,4 +1,4 @@
-import ChatGPTConversation from "../../../lib/ChatGPTConversation";
+import ChatGPTConversation from "../lib/ChatGPTConversation";
 import * as introductionPrompts from "../../../prompts/introduction.prompts";
 
 export default function updateChatHistory({

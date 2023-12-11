@@ -10,13 +10,13 @@ import {
     generateWrittenFeedbackMessage,
     multipleChoiceQuestionSystemPrompt,
     generateMarkScheme,
-} from "../prompts/quiz.prompts";
+} from "../../../prompts/quiz.prompts";
 import {
     MAXIMUM_WRITTEN_QUESTION_MARKS,
     MINIMUM_WRITTEN_QUESTION_MARKS,
     QUESTIONS_PER_LEARNING_OBJECTIVE,
 } from "./constants";
-import { getRandomNumberBetween } from "../utils/general";
+import { getRandomNumberBetween } from "../../../utils/general";
 
 /**
  * A class that manages a quiz for a given lesson.

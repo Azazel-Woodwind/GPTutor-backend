@@ -2,12 +2,12 @@ import startLessonSchema from "../schema/startLessonSchema";
 import { Socket } from "socket.io";
 import crypto from "crypto";
 import { io } from "../../server";
-import ChatGPTConversation from "../../../lib/ChatGPTConversation";
+import ChatGPTConversation from "../lib/ChatGPTConversation";
 import { lesson } from "../../../prompts/lessons.prompts";
-import Quiz from "../../../lib/Quiz";
+import Quiz from "../lib/Quiz";
 import { getAudioData } from "../utils/tts";
 import { sendMessageFromX } from "../utils/sendMessageFromX";
-import OrderMaintainer from "../../../lib/OrderMaintainer";
+import OrderMaintainer from "../lib/OrderMaintainer";
 import { onWrittenFeedbackEnd } from "../utils/onWrittenFeedbackEnd";
 import { setUpConversationWithX } from "../utils/setUpConversationWithX";
 

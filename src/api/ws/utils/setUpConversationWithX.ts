@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
 import { io } from "../../server";
-import OrderMaintainer from "../../../lib/OrderMaintainer";
-import ChatGPTConversation from "../../../lib/ChatGPTConversation";
+import OrderMaintainer from "../lib/OrderMaintainer";
+import ChatGPTConversation from "../lib/ChatGPTConversation";
 import { getAudioData } from "./tts";
 
 export async function setUpConversationWithX({
