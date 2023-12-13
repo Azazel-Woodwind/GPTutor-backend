@@ -32,25 +32,25 @@ const sampleRate = 24000; // Replace this with your actual sample rate
 const bitDepth = 16; // Replace this with your actual bit depth
 const bytesPerSample = bitDepth / 8;
 
+const request: Request = {
+    audioConfig: {
+        audioEncoding: "LINEAR16",
+        effectsProfileId: ["small-bluetooth-speaker-class-device"],
+        pitch: 0,
+        speakingRate: 1,
+    },
+    input: {
+        text: "",
+    },
+    voice: {
+        languageCode: "en-GB",
+        name: "en-GB-Neural2-D",
+    },
+};
+
 export async function getAudioData(text: string) {
-    const request: Request = {
-        audioConfig: {
-            audioEncoding: "LINEAR16",
-            effectsProfileId: ["small-bluetooth-speaker-class-device"],
-            pitch: 0,
-            speakingRate: 1,
-        },
-        input: {
-            text,
-        },
-        voice: {
-            languageCode: "en-GB",
-            name: "en-GB-Neural2-D",
-        },
-    };
-
     console.log("CONVERTING TO SPEECH DATA:", text);
-
+    request.input.text = text;
     const [response] = await ttsClient.synthesizeSpeech(request);
     // console.log("response:", response);
     if (!response.audioContent) {

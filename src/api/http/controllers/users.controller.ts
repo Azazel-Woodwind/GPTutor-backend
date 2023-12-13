@@ -35,13 +35,13 @@ export async function updateUserByIdHandler(
             subjects,
             access_level,
         } = req.body;
-        const { data: user, error } = await supabase.auth.admin.updateUserById(
-            req.params.id,
-            {
-                ...(email && { email }),
-                ...(password && { password }),
-            }
-        );
+        const {
+            data: { user },
+            error,
+        } = await supabase.auth.admin.updateUserById(req.params.id, {
+            ...(email && { email }),
+            ...(password && { password }),
+        });
 
         if (error) {
             throw error;
@@ -84,7 +84,7 @@ export async function updateUserByIdHandler(
             }
         }
 
-        return res.status(200).json(user);
+        return res.sendStatus(204);
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));
         return res.status(500).json(error.message);
@@ -103,45 +103,6 @@ export async function deleteUserByIdHandler(
             throw error;
         }
         return res.sendStatus(204);
-    } catch (error: any) {
-        console.log(JSON.stringify(error, null, 2));
-        return res.status(500).json(error.message);
-    }
-}
-
-export async function createUserHandler(
-    req: Request,
-    res: Response
-): Promise<Response> {
-    try {
-        const {
-            email,
-            password,
-            first_name,
-            last_name,
-            education_level,
-            subjects,
-            is_student,
-        } = req.body;
-
-        const { data, error } = await supabase.auth.admin.createUser({
-            email,
-            email_confirm: true,
-            password,
-            user_metadata: {
-                first_name,
-                last_name,
-                education_level,
-                subjects,
-                is_student,
-            },
-        });
-
-        if (error) {
-            throw error;
-        }
-
-        return res.status(201).json(data.user);
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));
         return res.status(500).json(error.message);

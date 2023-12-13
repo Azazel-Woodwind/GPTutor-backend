@@ -1,7 +1,7 @@
 import { createParser } from "eventsource-parser";
 import { streamAsyncIterable } from "../../../utils/general";
 /**
- * Fetches a Server-Sent Event stream and parses it. Attempts a maximum of 3 times.
+ * Performs a HTTP request and handles Server-Sent Events (SSE) using its callback parameters. Attempts a maximum of 3 times.
  * @param url The URL to fetch.
  * @param options The options to pass to `fetch`.
  * @returns The response.

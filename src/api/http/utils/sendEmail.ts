@@ -1,5 +1,4 @@
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2"; // ES Modules import
-// const { SESv2Client, SendEmailCommand } = require("@aws-sdk/client-sesv2"); // CommonJS import
 
 interface Props {
     to: string;

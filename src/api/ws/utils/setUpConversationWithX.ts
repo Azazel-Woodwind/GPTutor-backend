@@ -39,7 +39,7 @@ export async function setUpConversationWithX({
                         data
                     );
                 } else {
-                    console.log("EMITTING INSTRUCTION:", data);
+                    // console.log("EMITTING INSTRUCTION:", data);
                     socket.emit(`${channel}_instruction`, data);
                 }
             }),

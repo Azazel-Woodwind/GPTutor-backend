@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import supabase from "../../../config/supa";
 
 export default async function deserialiseUser(

@@ -5,6 +5,7 @@ import { Socket } from "socket.io";
 import startQuizHandler from "./application-handlers/startQuizHandler";
 import { updateSocketUser } from "./utils/updateSocketUser";
 import supabase from "../../config/supa";
+import subscribeToUserUpdates from "./utils/subscribeToUserUpdates";
 
 type DataHandler = (data: any, socket: Socket) => void;
 
@@ -12,43 +13,18 @@ const connectionHandler = async (socket: Socket) => {
     console.log("Socket connected");
     socket.currentUsage = 0;
     // console.log("Socket user id", socket.user?.id);
-    const userInfoChannel = supabase
-        .channel(`user-info-${socket.user?.id}`)
-        .on(
-            "postgres_changes",
-            {
-                event: "UPDATE",
-                schema: "public",
-                table: "users",
-                filter: `id=eq.${socket.user?.id}`,
-            },
-            payload => {
-                // console.log("Change received in public.users", payload);
-                updateSocketUser(socket);
-            }
-        )
-        .subscribe();
 
-    const authInfoChannel = supabase
-        .channel(`auth-info-${socket.user?.id}`)
-        .on(
-            "postgres_changes",
-            {
-                event: "UPDATE",
-                schema: "auth",
-                table: "users",
-                filter: `id=eq.${socket.user?.id}`,
-            },
-            payload => {
-                // console.log("Change received in auth.users", payload);
-                updateSocketUser(socket);
-            }
-        )
-        .subscribe();
+    const unsubscribeFromUserUpdates = subscribeToUserUpdates(
+        socket,
+        payload => {
+            updateSocketUser(socket);
+        }
+    );
 
     try {
         const route = (handler: DataHandler) => (data: any) =>
             handler(data, socket);
+
         // Whisper streaming api
         socket.on("transcribe_audio", route(transcribeAudioHandler));
         // X Conversation API
@@ -61,8 +37,7 @@ const connectionHandler = async (socket: Socket) => {
         // On disconnect
         socket.on("disconnect", async reason => {
             console.log("Socket disconnected.", reason);
-            supabase.removeChannel(userInfoChannel);
-            supabase.removeChannel(authInfoChannel);
+            unsubscribeFromUserUpdates();
             const { data, error } = await supabase.rpc("increment_usage", {
                 user_id: socket.user?.id!,
                 delta: socket.currentUsage!,

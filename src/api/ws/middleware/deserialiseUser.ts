@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import { Socket } from "socket.io";
 import { updateSocketUser } from "../utils/updateSocketUser";
 
@@ -31,7 +30,7 @@ const deserialiseUser = async (socket: Socket, next: any) => {
 
         await updateSocketUser(socket, userID as string);
 
-        socket.emit("authenticated", true); // tell the client they are authenticated
+        socket.emit("authenticated"); // tell the client they are authenticated
         // console.log(`Authentication successful with user: ${user.email}`);
         next();
     } catch (error) {

@@ -4,21 +4,19 @@ import { io } from "../../server";
 import Quiz from "../lib/Quiz";
 import DelayedBuffer from "../lib/DelayedBuffer";
 import { onWrittenFeedbackEnd } from "../utils/onWrittenFeedbackEnd";
+import joinUniqueRoom from "../utils/joinUniqueRoom";
 
-type ChannelData = {
-    lesson: Lesson;
-};
-
-const startQuizHandler = async (data: ChannelData, socket: Socket) => {
+const startQuizHandler = async (
+    data: {
+        lesson: Lesson;
+    },
+    socket: Socket
+) => {
     console.log("received connection to start_quiz");
 
     data.lesson.learning_objectives.sort((a, b) => a.number - b.number);
 
-    const sessionID = `quiz-${socket.user!.id}-${data.lesson.id}-${crypto
-        .randomBytes(4)
-        .toString("hex")}`;
-    socket.join(sessionID);
-    socket.sessionID = sessionID;
+    const sessionID = joinUniqueRoom(socket, "quiz", data.lesson.id);
 
     console.log("LESSON:", data.lesson);
 

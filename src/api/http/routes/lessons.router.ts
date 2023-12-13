@@ -8,8 +8,6 @@ import {
 import requireAccessLevel from "../middleware/requireAccessLevel";
 import { ADMIN_ACCESS_LEVEL } from "../utils/constants";
 
-/***************************** For Form Data ******************************/
-
 const router = Router();
 
 router

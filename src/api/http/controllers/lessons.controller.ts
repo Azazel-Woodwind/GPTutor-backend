@@ -37,7 +37,7 @@ export async function updateLessonHandler(
             throw error;
         }
 
-        return res.status(200).json(data);
+        return res.sendStatus(204);
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));
         return res.status(500).json(error.message);
@@ -52,12 +52,13 @@ export async function getLessonsHandler(
         const { data, error } = await supabase
             .from("lessons")
             .select(
-                "*, learning_objectives (*), exam_boards (*), author:users (*)"
+                "*, learning_objectives (*), exam_boards (*), author:users!lessons_author_id_fkey (*)"
             );
 
         if (error) {
             throw error;
         }
+
         return res.status(200).json(data);
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));

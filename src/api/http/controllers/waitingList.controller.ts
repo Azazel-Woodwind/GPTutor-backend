@@ -42,7 +42,9 @@ export async function addUserToWaitingListHandler(
 
         const { data: data2, error: error2 } = await supabase
             .from("waiting_list_users")
-            .insert(req.body);
+            .insert(req.body)
+            .select()
+            .single();
 
         if (error2) {
             throw error2;
@@ -75,18 +77,5 @@ export async function addUserToWaitingListHandler(
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));
         return res.status(500).json(error.message);
-    }
-}
-
-async function linkSubjects(subject_name: string, user_id: string) {
-    const { error } = await supabase
-        .from("waiting_list_users_on_subjects")
-        .insert({
-            subject_name,
-            user_id,
-        });
-
-    if (error) {
-        throw error;
     }
 }

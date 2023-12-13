@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-    createUserHandler,
     deleteUserByIdHandler,
     getUsersHandler,
     updateUserByIdHandler,
@@ -9,10 +8,7 @@ import requireAccessLevel from "../middleware/requireAccessLevel";
 import { ADMIN_ACCESS_LEVEL } from "../utils/constants";
 
 const router = Router();
-router
-    .route("/")
-    .get(requireAccessLevel(ADMIN_ACCESS_LEVEL), getUsersHandler)
-    .post(createUserHandler);
+router.route("/").get(requireAccessLevel(ADMIN_ACCESS_LEVEL), getUsersHandler);
 router
     .route("/:id")
     .put(requireAccessLevel(ADMIN_ACCESS_LEVEL), updateUserByIdHandler)

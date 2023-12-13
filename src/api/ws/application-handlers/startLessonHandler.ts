@@ -1,4 +1,3 @@
-import startLessonSchema from "../schema/startLessonSchema";
 import { Socket } from "socket.io";
 import crypto from "crypto";
 import { io } from "../../server";
@@ -10,25 +9,17 @@ import { sendMessageFromX } from "../utils/sendMessageFromX";
 import OrderMaintainer from "../lib/OrderMaintainer";
 import { onWrittenFeedbackEnd } from "../utils/onWrittenFeedbackEnd";
 import { setUpConversationWithX } from "../utils/setUpConversationWithX";
+import joinUniqueRoom from "../utils/joinUniqueRoom";
 
-type ChannelData = {
-    current_lesson: Lesson;
-};
-
-const startLessonHandler = async (data: ChannelData, socket: Socket) => {
-    // try {
-    //     startLessonSchema.parse(data);
-    // } catch (error: any) {
-    //     socket.emit("start_lesson_error", error.issues);
-    //     return;
-    // }
-
+const startLessonHandler = async (
+    data: {
+        current_lesson: Lesson;
+    },
+    socket: Socket
+) => {
     const { current_lesson } = data;
-    const sessionID = `lesson-${socket.user!.id}-${current_lesson.id}-${crypto
-        .randomBytes(4)
-        .toString("hex")}`;
-    socket.join(sessionID);
-    socket.sessionID = sessionID;
+
+    const sessionID = joinUniqueRoom(socket, "quiz", current_lesson.id);
 
     console.log("Received connection to start_lesson");
 

@@ -6,7 +6,12 @@ import { conversation } from "../../../prompts/conversation.prompts";
 import { sendMessageFromX } from "../utils/sendMessageFromX";
 import updateChatHistory from "../utils/updateChatHistory";
 
-const startChatHandler = (data: any, socket: Socket) => {
+const startChatHandler = (
+    data: {
+        new: boolean;
+    },
+    socket: Socket
+) => {
     console.log("Received connection to start_chat");
 
     const current_user = socket.user;
@@ -81,8 +86,8 @@ const startChatHandler = (data: any, socket: Socket) => {
             socket,
             channel: "chat",
             handleError,
-            // start: process.env.KAI !== "true",
-            start: true,
+            start: process.env.KAI !== "true",
+            // start: true,
         });
     }
 };
