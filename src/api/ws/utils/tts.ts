@@ -1,75 +1,28 @@
-import { TextToSpeechClient } from "@google-cloud/text-to-speech";
-
-export const ttsClient = new TextToSpeechClient();
-
-type AudioEncoding =
-    | "LINEAR16"
-    | "AUDIO_ENCODING_UNSPECIFIED"
-    | "MP3"
-    | "OGG_OPUS"
-    | "MULAW"
-    | "ALAW"
-    | null
-    | undefined;
-
-type Request = {
-    audioConfig: {
-        audioEncoding: AudioEncoding;
-        effectsProfileId: string[];
-        pitch: number;
-        speakingRate: number;
-    };
-    input: {
-        text: string;
-    };
-    voice: {
-        languageCode: string;
-        name: string;
-    };
-};
-
-const sampleRate = 24000; // Replace this with your actual sample rate
-const bitDepth = 16; // Replace this with your actual bit depth
-const bytesPerSample = bitDepth / 8;
-
-const request: Request = {
-    audioConfig: {
-        audioEncoding: "LINEAR16",
-        effectsProfileId: ["small-bluetooth-speaker-class-device"],
-        pitch: 0,
-        speakingRate: 1,
-    },
-    input: {
-        text: "",
-    },
-    voice: {
-        languageCode: "en-GB",
-        name: "en-GB-Neural2-D",
-    },
-};
-
 export async function getAudioData(text: string) {
-    console.log("CONVERTING TO SPEECH DATA:", text);
-    request.input.text = text;
-    const [response] = await ttsClient.synthesizeSpeech(request);
-    // console.log("response:", response);
-    if (!response.audioContent) {
-        throw new Error("No audio content found");
-    }
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "audio/mpeg",
+            "xi-api-key": process.env.ELEVEN_LABS_API_KEY,
+        },
+        body: JSON.stringify({
+            model_id: "eleven_multilingual_v2",
+            text,
+            voice_settings: {
+                similarity_boost: 0.75,
+                stability: 0.5,
+                style: 0,
+            },
+        }),
+    };
 
-    if (typeof response.audioContent === "string") {
-        throw new Error("Audio content is a string");
-    }
-
-    const totalSamples = response.audioContent.length / bytesPerSample;
-    const durationInSeconds = totalSamples / sampleRate;
-
-    // console.log(typeof response.audioContent === "string");
-
-    // @ts-ignore
-    // the "base64" argument causes a compilation error but it is needed and works.
-    // no idea why its not a valid argument
-    const base64 = response.audioContent.toString("base64");
-
-    return { audioContent: base64, duration: durationInSeconds };
+    const res = await fetch(
+        "https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb",
+        options
+    );
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString("base64");
+    return { audioContent: base64 };
 }

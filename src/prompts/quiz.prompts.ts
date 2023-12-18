@@ -83,6 +83,23 @@ export const generateMultipleChoiceFeedbackMessage = (choiceNumber: number) => `
 Student's choice: """${choiceNumber}"""
 `;
 
+const multipleChoiceFeedbackSystemPrompt = (
+    question: String,
+    solution: string
+) => `
+Multiple choice problem statement: """${question}"""
+Your choice: """${solution}"""
+
+You will be prompted with the student's choice, in the order of their attempts. If the student's choice does not match yours, offer a hint to the student in a way that does not reveal the answer. If the student's choice does match your choice, congratulate the student and re-enforce their understanding by consolidating the correct answer and explaining why all non-chosen answers were incorrect.
+`;
+
+const writtenFeedbackSystemPrompt = (question: String, solution: string) => `
+Written problem statement: """${question}"""
+The mark scheme: """${solution}"""
+
+You will be prompted with the student's solution and your analysis of their solution, in the order of their attempts. If the student did not score full marks according to your analysis, offer a hint to the student in a way that does not reveal the answer. If the student scored full marks according to your analysis, congratulate the student and re-enforce their understanding by consolidating the correct answer.
+`;
+
 export const generateFeedbackSystemPrompt = (
     lesson: Lesson,
     question: string,
@@ -94,25 +111,12 @@ You are an enthusiastic ${
 } who marks questions for a student with insightful feedback.
 
 ${
-    multipleChoice ? "Multiple choice" : "Written"
-} problem statement: """${question}"""
-Your ${multipleChoice ? "choice" : "mark scheme"}: """${solution}"""
+    multipleChoice
+        ? multipleChoiceFeedbackSystemPrompt(question, solution)
+        : writtenFeedbackSystemPrompt(question, solution)
+}
 
-You will be prompted with the student's ${
-    multipleChoice ? "choice" : "solution and your analysis of their solution"
-}, in the order of their attempts. If the student${
-    multipleChoice
-        ? "'s choice does not match yours"
-        : " did not score full marks according to your analysis"
-}, offer a hint to the student in a way that does not reveal the answer. If the student${
-    multipleChoice
-        ? "'s choice does match your choice"
-        : " scored full marks according to your analysis"
-}, congratulate the student and re-enforce their understanding by consolidating the correct answer${
-    multipleChoice
-        ? " and explaining why all non-chosen answers were incorrect"
-        : ""
-}. Keep all feedback succinct. Do not comment on the student's grammar or spelling.
+Keep all feedback succinct. Do not comment on the student's grammar or spelling.
 
 Respond in second person as if you are speaking to the student.
 `;

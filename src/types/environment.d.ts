@@ -11,6 +11,7 @@ declare global {
             FRONTEND_DEVELOPMENT_ORIGIN: string;
             FRONTEND_PRODUCTION_ORIGIN: string;
             MODEL_NAME: string;
+            ELEVEN_LABS_API_KEY: string;
         }
     }
 }
