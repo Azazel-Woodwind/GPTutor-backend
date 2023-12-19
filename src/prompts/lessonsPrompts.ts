@@ -1,4 +1,4 @@
-import { emotionInstructions, generalIntroduction } from "./general.prompts";
+import { emotionInstructions, generalIntroduction } from "./generalPrompts";
 
 const formatLearningObjective = (
     learningObjective: LearningObjective,

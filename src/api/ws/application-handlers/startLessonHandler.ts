@@ -1,8 +1,7 @@
 import { Socket } from "socket.io";
-import crypto from "crypto";
 import { io } from "../../server";
 import ChatGPTConversation from "../lib/ChatGPTConversation";
-import { lesson } from "../../../prompts/lessons.prompts";
+import { lesson } from "../../../prompts/lessonsPrompts";
 import Quiz from "../lib/Quiz";
 import { getAudioData } from "../utils/tts";
 import { sendMessageFromX } from "../utils/sendMessageFromX";

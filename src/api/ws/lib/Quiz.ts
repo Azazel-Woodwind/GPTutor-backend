@@ -10,7 +10,7 @@ import {
     generateWrittenFeedbackMessage,
     multipleChoiceQuestionSystemPrompt,
     generateMarkScheme,
-} from "../../../prompts/quiz.prompts";
+} from "../../../prompts/quizPrompts";
 import {
     MAXIMUM_WRITTEN_QUESTION_MARKS,
     MINIMUM_WRITTEN_QUESTION_MARKS,

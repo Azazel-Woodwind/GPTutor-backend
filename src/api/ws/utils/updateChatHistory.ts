@@ -1,5 +1,5 @@
 import ChatGPTConversation from "../lib/ChatGPTConversation";
-import * as introductionPrompts from "../../../prompts/introduction.prompts";
+import * as introductionPrompts from "../../../prompts/introductionPrompts";
 
 export default function updateChatHistory({
     chat,

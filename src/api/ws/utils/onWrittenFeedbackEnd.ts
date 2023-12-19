@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
 import { sendMessageFromX } from "./sendMessageFromX";
-import { OUT_OF_ATTEMPTS_MESSAGE } from "../../../prompts/quiz.prompts";
+import { OUT_OF_ATTEMPTS_MESSAGE } from "../../../prompts/quizPrompts";
 import { io } from "../../server";
 
 export async function onWrittenFeedbackEnd({
