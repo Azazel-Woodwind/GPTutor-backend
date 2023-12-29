@@ -59,16 +59,6 @@ export async function getLessonsHandler(
             throw error;
         }
 
-        // const transformedData = data.map(lesson => {
-        //     if (Array.isArray(lesson.exam_boards)) {
-        //         return {
-        //             ...lesson,
-        //             exam_boards: lesson.exam_boards.map(board => board.name),
-        //         };
-        //     }
-        //     return lesson;
-        // });
-
         return res.status(200).json(data);
     } catch (error: any) {
         console.log(JSON.stringify(error, null, 2));

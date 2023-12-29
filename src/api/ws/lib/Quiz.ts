@@ -73,8 +73,11 @@ export default class Quiz {
     }
 
     public hasGeneratedAllQuestions() {
+        console.log(this.questions.length);
+        console.log(this.lesson.learning_objectives.length);
+        console.log(this.lesson.learning_objectives);
         return (
-            this.questions.length ===
+            this.nextQuestionIndex ===
             QUESTIONS_PER_LEARNING_OBJECTIVE *
                 this.lesson.learning_objectives.length
         );
