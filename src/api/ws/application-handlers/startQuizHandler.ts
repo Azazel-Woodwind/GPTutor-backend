@@ -50,7 +50,8 @@ const startQuizHandler = async (
         console.log("CHANGING TO QUESTION", questionIndex);
         quiz.changeQuestion();
 
-        if (quiz.hasGeneratedAllQuestions()) {
+        if (!quiz.hasGeneratedAllQuestions()) {
+            console.log("GENERATING NEXT QUESTION AS QUIZ HAS NOT ENDED");
             quiz.generateNextQuestion({
                 hasImage: true,
                 onImage,

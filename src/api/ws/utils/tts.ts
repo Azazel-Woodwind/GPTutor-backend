@@ -21,6 +21,13 @@ export async function getAudioData(text: string) {
         "https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb",
         options
     );
+    // if json, we have an error
+    if (res.headers.get("content-type")?.includes("application/json")) {
+        const json = await res.json();
+        console.log(json);
+        throw new Error("Error with TTS: " + json.message);
+    }
+
     const arrayBuffer = await res.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const base64 = buffer.toString("base64");
