@@ -46,13 +46,13 @@ export interface Database {
       }
       exam_boards: {
         Row: {
-          exam_board_name: string
+          name: string
         }
         Insert: {
-          exam_board_name: string
+          name: string
         }
         Update: {
-          exam_board_name?: string
+          name?: string
         }
         Relationships: []
       }
@@ -123,18 +123,6 @@ export interface Database {
           }
         ]
       }
-      lesson_statuses: {
-        Row: {
-          status: string
-        }
-        Insert: {
-          status: string
-        }
-        Update: {
-          status?: string
-        }
-        Relationships: []
-      }
       lessons: {
         Row: {
           author_id: string | null
@@ -142,8 +130,7 @@ export interface Database {
           created_at: string | null
           education_level: string | null
           id: string
-          rejection_reason: string | null
-          status: string
+          is_published: boolean
           subject: string | null
           title: string
         }
@@ -153,8 +140,7 @@ export interface Database {
           created_at?: string | null
           education_level?: string | null
           id?: string
-          rejection_reason?: string | null
-          status?: string
+          is_published: boolean
           subject?: string | null
           title?: string
         }
@@ -164,8 +150,7 @@ export interface Database {
           created_at?: string | null
           education_level?: string | null
           id?: string
-          rejection_reason?: string | null
-          status?: string
+          is_published?: boolean
           subject?: string | null
           title?: string
         }
@@ -183,13 +168,6 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "education_levels"
             referencedColumns: ["education_level"]
-          },
-          {
-            foreignKeyName: "lessons_status_fkey"
-            columns: ["status"]
-            isOneToOne: false
-            referencedRelation: "lesson_statuses"
-            referencedColumns: ["status"]
           },
           {
             foreignKeyName: "lessons_subject_fkey"
@@ -214,13 +192,6 @@ export interface Database {
           lesson_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "lessons_on_exam_boards_exam_board_name_fkey"
-            columns: ["exam_board_name"]
-            isOneToOne: false
-            referencedRelation: "exam_boards"
-            referencedColumns: ["exam_board_name"]
-          },
           {
             foreignKeyName: "lessons_on_exam_boards_lesson_id_fkey"
             columns: ["lesson_id"]
@@ -480,8 +451,7 @@ export interface Database {
           created_at: string | null
           education_level: string | null
           id: string
-          rejection_reason: string | null
-          status: string
+          is_published: boolean
           subject: string | null
           title: string
         }
@@ -527,8 +497,7 @@ export interface Database {
               created_at: string | null
               education_level: string | null
               id: string
-              rejection_reason: string | null
-              status: string
+              is_published: boolean
               subject: string | null
               title: string
             }
@@ -550,8 +519,7 @@ export interface Database {
               created_at: string | null
               education_level: string | null
               id: string
-              rejection_reason: string | null
-              status: string
+              is_published: boolean
               subject: string | null
               title: string
             }

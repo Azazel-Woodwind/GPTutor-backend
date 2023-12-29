@@ -62,7 +62,6 @@ type Lesson = {
     learning_objectives: LearningObjective[];
     is_published: boolean;
     author_id: string;
-    is_verified: boolean;
     created_at: string;
     exam_boards: string[];
 };
