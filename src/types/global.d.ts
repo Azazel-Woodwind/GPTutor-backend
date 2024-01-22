@@ -5,10 +5,10 @@ enum EducationLevel {
 }
 
 enum Subject {
-    MATHEMATICS = "mathematics",
-    PHYSICS = "physics",
-    CHEMISTRY = "chemistry",
-    BIOLOGY = "biology",
+    MATHEMATICS = "Mathematics",
+    PHYSICS = "Physics",
+    CHEMISTRY = "Chemistry",
+    BIOLOGY = "Biology",
 }
 
 type User = {
@@ -62,7 +62,6 @@ type Lesson = {
     learning_objectives: LearningObjective[];
     is_published: boolean;
     author_id: string;
-    is_verified: boolean;
     created_at: string;
     exam_boards: string[];
 };
@@ -88,4 +87,16 @@ type InterServerEvents = {
 
 type Context = {
     path: string;
+};
+
+type Question = {
+    question: string;
+    title?: string;
+    choices?: string[];
+    solution?: string;
+    solvingQuestion: boolean;
+    questionType: "written" | "multiple";
+    marks: number;
+    final: boolean;
+    questionIndex: number;
 };
